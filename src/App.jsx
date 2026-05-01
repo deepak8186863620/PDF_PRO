@@ -7,6 +7,7 @@ import ToolCard from "./components/ToolCard";
 import ToolView from "./components/ToolView";
 import Dashboard from "./components/Dashboard";
 import AboutUs from "./components/AboutUs";
+import Login from "./components/Login";
 import { TOOLS } from "./constants";
 import {
   Sparkles, FileText, Image as ImageIcon,
@@ -18,10 +19,21 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 export default function App() {
   const [selectedTool, setSelectedTool] = useState(null);
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("login");
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [user] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user && view !== "login" && view !== "about") {
+        setView("login");
+        setSelectedTool(null);
+      } else if (user && view === "login") {
+        setView("home");
+      }
+    }
+  }, [user, loading, view]);
 
   const categories = [
     { id: "all", label: "All Tools", icon: LayoutGrid, count: TOOLS.length },
@@ -91,6 +103,7 @@ export default function App() {
   const handleHomeClick = () => { setSelectedTool(null); setView("home"); };
   const handleDashboardClick = () => { setSelectedTool(null); setView("dashboard"); };
   const handleAboutClick = () => { setSelectedTool(null); setView("about"); };
+  const handleLoginClick = () => { setSelectedTool(null); setView("login"); };
 
   return (
     <ErrorBoundary>
@@ -133,11 +146,14 @@ export default function App() {
           }} />
         </div>
 
-        <Navbar
-          onDashboardClick={handleDashboardClick}
-          onHomeClick={handleHomeClick}
-          onAboutClick={handleAboutClick}
-        />
+        {view !== "login" && (
+          <Navbar
+            onDashboardClick={handleDashboardClick}
+            onHomeClick={handleHomeClick}
+            onAboutClick={handleAboutClick}
+            onLoginClick={handleLoginClick}
+          />
+        )}
 
         <main className="relative z-10">
           <AnimatePresence mode="wait">
@@ -160,6 +176,16 @@ export default function App() {
                 transition={{ duration: 0.3 }}
               >
                 <AboutUs />
+              </motion.div>
+            ) : view === "login" ? (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Login onBack={handleHomeClick} onLoginSuccess={handleDashboardClick} onAboutClick={handleAboutClick} />
               </motion.div>
             ) : !selectedTool ? (
               <motion.div
@@ -406,7 +432,7 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        <Footer onAboutClick={handleAboutClick} />
+        {view !== "login" && <Footer onAboutClick={handleAboutClick} />}
       </div>
     </ErrorBoundary>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare } from "lucide-react";
+import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash } from "lucide-react";
 import FileUpload from "./FileUpload";
 import CameraScanner from "./CameraScanner";
 import PDFPreviewBar from "./PDFPreviewBar";
@@ -36,6 +36,57 @@ export default function ToolView({ tool, onBack }) {
   const [pdfContext, setPdfContext] = useState(null);
   const [isChatting, setIsChatting] = useState(false);
   const [user] = useAuthState(auth);
+
+  // Range selector state (for remove-pages tool)
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  const [pageRanges, setPageRanges] = useState([]); // [{from, to}]
+
+  // Expand ranges + comma list into a sorted, unique array of page numbers
+  const expandRanges = (rangesArr, manualInput) => {
+    const pages = new Set();
+    // From visual range badges
+    rangesArr.forEach(({ from, to }) => {
+      const f = parseInt(from), t = parseInt(to);
+      if (!isNaN(f) && !isNaN(t)) {
+        const lo = Math.min(f, t), hi = Math.max(f, t);
+        for (let p = lo; p <= hi; p++) pages.add(p);
+      }
+    });
+    // From the manual text input (supports both "1,3,5" and "2-6" tokens)
+    if (manualInput && manualInput.trim()) {
+      manualInput.split(",").forEach((token) => {
+        token = token.trim();
+        if (/^\d+-\d+$/.test(token)) {
+          const [a, b] = token.split("-").map(Number);
+          const lo = Math.min(a, b), hi = Math.max(a, b);
+          for (let p = lo; p <= hi; p++) pages.add(p);
+        } else if (/^\d+$/.test(token)) {
+          pages.add(Number(token));
+        }
+      });
+    }
+    return Array.from(pages).sort((a, b) => a - b);
+  };
+
+  const addRange = () => {
+    const f = parseInt(rangeFrom), t = parseInt(rangeTo);
+    if (isNaN(f) || isNaN(t) || f < 1 || t < 1) {
+      toast.error("Please enter valid page numbers.");
+      return;
+    }
+    if (f > t) {
+      toast.error("'From' page must be ≤ 'To' page.");
+      return;
+    }
+    setPageRanges((prev) => [...prev, { from: f, to: t }]);
+    setRangeFrom("");
+    setRangeTo("");
+  };
+
+  const removeRange = (idx) => {
+    setPageRanges((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() || isChatting) return;
@@ -153,8 +204,9 @@ export default function ToolView({ tool, onBack }) {
     }
 
     if (tool.id === "remove-pages") {
-      if (!pagesToProcess.trim() || !/^(\s*\d+\s*(,\s*\d+\s*)*)$/.test(pagesToProcess)) {
-        toast.error("Please provide valid page numbers (e.g., 1, 3, 5).");
+      const expanded = expandRanges(pageRanges, pagesToProcess);
+      if (expanded.length === 0) {
+        toast.error("Please select at least one page to remove (use ranges, thumbnails, or manual input).");
         return;
       }
     }
@@ -388,12 +440,13 @@ export default function ToolView({ tool, onBack }) {
           body: JSON.stringify({ fileId: uploadedFiles[0].id }),
         });
       } else if (tool.id === "remove-pages") {
+        const expandedPages = expandRanges(pageRanges, pagesToProcess);
         processRes = await fetch("/api/pdf/remove-pages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             fileId: uploadedFiles[0].id, 
-            pages: pagesToProcess.split(",").map(p => parseInt(p.trim())).filter(p => !isNaN(p))
+            pages: expandedPages
           }),
         });
       } else if (tool.id === "add-pages") {
@@ -647,21 +700,127 @@ export default function ToolView({ tool, onBack }) {
                     title="Select Pages to Remove"
                     toolId={tool.id}
                   />
-                  
-                  <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl">
-                    <label className="block text-xs font-black text-zinc-500 uppercase tracking-[0.2em] mb-3">
-                      Pages to Remove (e.g. 1, 3, 5)
-                    </label>
-                    <input 
-                      type="text"
-                      value={pagesToProcess}
-                      onChange={(e) => setPagesToProcess(e.target.value)}
-                      placeholder="Enter page numbers separated by commas"
-                      className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors font-mono text-sm"
-                    />
-                    <p className="mt-2 text-[10px] text-zinc-600 italic">
-                      Note: Page numbers start from 1. You can select them from the preview above.
-                    </p>
+
+                  {/* ── Smart Page Range Selector ── */}
+                  <div className="max-w-2xl mx-auto bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-800 bg-black/30">
+                      <div className="w-9 h-9 bg-red-500/10 rounded-xl flex items-center justify-center">
+                        <Hash size={18} className="text-red-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-white tracking-tight">Smart Range Selector</p>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Select a range of pages to remove</p>
+                      </div>
+                      {(pageRanges.length > 0 || pagesToProcess.trim()) && (
+                        <span className="ml-auto px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-black text-red-400 uppercase tracking-widest">
+                          {expandRanges(pageRanges, pagesToProcess).length} pages queued
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="p-6 space-y-5">
+                      {/* Range input row */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">From Page</label>
+                          <input
+                            id="range-from"
+                            type="number"
+                            min="1"
+                            value={rangeFrom}
+                            onChange={(e) => setRangeFrom(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && document.getElementById("range-to").focus()}
+                            placeholder="e.g. 2"
+                            className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors font-mono text-sm"
+                          />
+                        </div>
+                        <div className="flex items-end justify-center pb-3">
+                          <span className="text-zinc-600 font-black text-lg">→</span>
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">To Page</label>
+                          <input
+                            id="range-to"
+                            type="number"
+                            min="1"
+                            value={rangeTo}
+                            onChange={(e) => setRangeTo(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && addRange()}
+                            placeholder="e.g. 30"
+                            className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors font-mono text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={addRange}
+                          className="flex items-center justify-center gap-2 px-5 py-3 bg-red-500 hover:bg-red-400 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 shadow-lg shadow-red-500/20 shrink-0"
+                        >
+                          <Plus size={14} /> Add Range
+                        </button>
+                      </div>
+
+                      {/* Range badges */}
+                      {pageRanges.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Added Ranges</p>
+                          <div className="flex flex-wrap gap-2">
+                            <AnimatePresence>
+                              {pageRanges.map((r, idx) => (
+                                <motion.span
+                                  key={idx}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-full text-xs font-black text-red-300"
+                                >
+                                  Pages {r.from}–{r.to}
+                                  <button
+                                    onClick={() => removeRange(idx)}
+                                    className="w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500 flex items-center justify-center transition-colors"
+                                  >
+                                    <X size={10} />
+                                  </button>
+                                </motion.span>
+                              ))}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Divider */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px bg-zinc-800" />
+                        <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">or type manually</span>
+                        <div className="flex-1 h-px bg-zinc-800" />
+                      </div>
+
+                      {/* Manual input */}
+                      <div>
+                        <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+                          Manual Entry — comma-separated, ranges OK (e.g. 1, 3, 8-15, 20)
+                        </label>
+                        <input 
+                          type="text"
+                          value={pagesToProcess}
+                          onChange={(e) => setPagesToProcess(e.target.value)}
+                          placeholder="e.g. 1, 3, 8-15, 20"
+                          className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Live preview of expanded pages */}
+                      {expandRanges(pageRanges, pagesToProcess).length > 0 && (
+                        <div className="p-4 rounded-2xl bg-black/50 border border-zinc-800">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Pages that will be removed</p>
+                          <p className="text-xs font-mono text-red-400 leading-relaxed break-all">
+                            {expandRanges(pageRanges, pagesToProcess).join(", ")}
+                          </p>
+                          <p className="mt-1 text-[10px] text-zinc-600">
+                            Total: {expandRanges(pageRanges, pagesToProcess).length} page(s)
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

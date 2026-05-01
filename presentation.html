@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Master - Presentation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            background-color: #0a0a0a;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 120px;
+            box-sizing: border-box;
+            border-bottom: 2px solid #222;
+        }
+
+        /* Print Settings to make it a perfect PDF */
+        @page {
+            size: 1920px 1080px; /* 16:9 Aspect Ratio */
+            margin: 0;
+        }
+
+        @media print {
+            body { background-color: #0a0a0a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .slide { border-bottom: none; page-break-after: always; }
+        }
+
+        /* Decorative Background */
+        .bg-gradient {
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 120px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            letter-spacing: -3px;
+            line-height: 1.1;
+        }
+
+        h2 {
+            font-size: 80px;
+            font-weight: 600;
+            margin-bottom: 60px;
+            color: #e5e5e5;
+            letter-spacing: -2px;
+        }
+
+        p, li {
+            font-size: 40px;
+            color: #999;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            margin-left: 50px;
+        }
+
+        li {
+            margin-bottom: 40px;
+        }
+
+        .highlight {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Specific slide adjustments */
+        .title-slide h1 {
+            font-size: 150px;
+            margin-bottom: 40px;
+        }
+        .title-slide p {
+            font-size: 54px;
+            color: #888;
+        }
+        .footer {
+            position: absolute;
+            bottom: 60px;
+            left: 120px;
+            font-size: 24px;
+            color: #555;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+        }
+        
+        .box {
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 32px;
+            padding: 60px;
+        }
+        .box h3 {
+            font-size: 50px;
+            margin-top: 0;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: Title -->
+    <div class="slide title-slide">
+        <div class="bg-gradient"></div>
+        <div class="content">
+            <h1 style="text-align: center;">PDF Master</h1>
+            <p style="text-align: center;">A Premium, AI-Powered Document Platform</p>
+        </div>
+        <div class="footer">Deepak Prajapati • Presentation Deck</div>
+    </div>
+
+    <!-- Slide 2: The Problem -->
+    <div class="slide">
+        <div class="content">
+            <h2>The Problem & Solution</h2>
+            <div class="grid-2">
+                <div class="box">
+                    <h3>The Problem</h3>
+                    <ul style="font-size: 36px;">
+                        <li>Relying on clunky, slow desktop software.</li>
+                        <li>Using ad-riddled, unsecure online tools.</li>
+                        <li>Fragmented workflows for PDFs vs. Images.</li>
+                    </ul>
+                </div>
+                <div class="box">
+                    <h3>The Solution</h3>
+                    <ul style="font-size: 36px;">
+                        <li><span class="highlight">All-in-One:</span> Merge, split, compress, and edit in one unified hub.</li>
+                        <li><span class="highlight">Client-Side Security:</span> Heavy processing happens securely in the browser.</li>
+                        <li><span class="highlight">Premium UI:</span> Distraction-free, monochrome aesthetic.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer">Problem & Solution</div>
+    </div>
+
+    <!-- Slide 3: Key Features -->
+    <div class="slide">
+        <div class="content">
+            <h2>Core Capabilities</h2>
+            <ul>
+                <li><span class="highlight">PDF Tooling:</span> Advanced merging, splitting, and text extraction using <code>pdf-lib</code>.</li>
+                <li><span class="highlight">Image Processing:</span> Format conversion, resizing, and compression with high performance.</li>
+                <li><span class="highlight">AI Integration:</span> Structured data extraction powered by Google Gemini AI.</li>
+                <li><span class="highlight">User Dashboard:</span> Firebase-backed history tracking and secure authentication.</li>
+            </ul>
+        </div>
+        <div class="footer">Key Features</div>
+    </div>
+
+    <!-- Slide 4: Tech Stack -->
+    <div class="slide">
+        <div class="content">
+            <h2>Architecture & Tech Stack</h2>
+            <div class="grid-2">
+                <div>
+                    <h3 style="font-size: 50px; color: #fff; margin-bottom: 30px;">Frontend</h3>
+                    <ul>
+                        <li>React 19 & Vite</li>
+                        <li>Tailwind CSS</li>
+                        <li>Framer Motion</li>
+                        <li>Lucide React Icons</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="font-size: 50px; color: #fff; margin-bottom: 30px;">Backend & Data</h3>
+                    <ul>
+                        <li>Express.js API Node Server</li>
+                        <li>Firebase (Auth & Firestore)</li>
+                        <li>Google GenAI SDK</li>
+                        <li>Socket.IO integration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer">Tech Stack</div>
+    </div>
+
+    <!-- Slide 5: Technical Challenges -->
+    <div class="slide">
+        <div class="content">
+            <h2>Technical Achievements</h2>
+            <ul>
+                <li><span class="highlight">Codebase Migration:</span> Successfully refactored the entire project to pure JavaScript for a simplified build pipeline while maintaining stability.</li>
+                <li><span class="highlight">Heavy Client-Side Processing:</span> Implemented memory management to process large files directly in the browser.</li>
+                <li><span class="highlight">Bespoke Design System:</span> Built a cohesive, dark-mode UI from scratch without relying on generic templates to achieve a premium SaaS feel.</li>
+            </ul>
+        </div>
+        <div class="footer">Technical Challenges</div>
+    </div>
+
+    <!-- Slide 6: Conclusion -->
+    <div class="slide title-slide">
+        <div class="bg-gradient"></div>
+        <div class="content">
+            <h1 style="text-align: center; font-size: 100px;">Thank You</h1>
+            <p style="text-align: center;">Ready for Live Demonstration & Q&A</p>
+        </div>
+        <div class="footer">End of Presentation</div>
+    </div>
+
+</body>
+</html>

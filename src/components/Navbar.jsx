@@ -5,7 +5,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
 import deepakImg from "../assets/deepak.png";
 
-export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick }) {
+export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onLoginClick }) {
   const [user] = useAuthState(auth);
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -31,27 +31,8 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick }) 
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const u = result.user;
-      const userDocRef = doc(db, "users", u.uid);
-      const userDoc = await getDoc(userDocRef);
-      const userData = {
-        uid: u.uid,
-        email: u.email,
-        displayName: u.displayName,
-        photoURL: u.photoURL,
-        lastLogin: Timestamp.now(),
-      };
-      if (!userDoc.exists()) {
-        userData.createdAt = Timestamp.now();
-        userData.role = "user";
-      }
-      await setDoc(userDocRef, userData, { merge: true });
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
+  const handleLogin = () => {
+    onLoginClick?.();
   };
 
   const handleLogout = async () => {
