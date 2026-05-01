@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "Represents a user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "email": { "type": "string", "format": "email", "description": "The email address of the user." },
+        "displayName": { "type": "string", "description": "The display name of the user." },
+        "photoURL": { "type": "string", "format": "uri", "description": "The profile photo URL of the user." },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "The role of the user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the user was created." },
+        "lastLogin": { "type": "string", "format": "date-time", "description": "The timestamp when the user last logged in." }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "aiInteractions": {
+      "title": "AI Interaction",
+      "description": "Represents an interaction between a user and the AI.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the interaction." },
+        "userId": { "type": "string", "description": "The ID of the user who initiated the interaction." },
+        "prompt": { "type": "string", "description": "The prompt sent to the AI." },
+        "response": { "type": "string", "description": "The response from the AI." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp of the interaction." }
+      },
+      "required": ["id", "userId", "prompt", "response", "timestamp"]
+    },
+    "logs": {
+      "title": "System Log",
+      "description": "Represents a system log entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the log entry." },
+        "level": { "type": "string", "enum": ["info", "warn", "error"], "description": "The log level." },
+        "message": { "type": "string", "description": "The log message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp of the log entry." }
+      },
+      "required": ["id", "level", "message", "timestamp"]
+    },
+    "feedback": {
+      "title": "User Feedback",
+      "description": "Represents feedback provided by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the feedback." },
+        "userId": { "type": "string", "description": "The ID of the user who provided the feedback." },
+        "userEmail": { "type": "string", "format": "email", "description": "The email of the user." },
+        "userName": { "type": "string", "description": "The name of the user." },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 5, "description": "The star rating (1-5)." },
+        "comment": { "type": "string", "description": "The feedback comment." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp of the feedback." }
+      },
+      "required": ["id", "userId", "rating", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Stores user profile data."
+    },
+    "/aiInteractions/{interactionId}": {
+      "schema": "aiInteractions",
+      "description": "Stores AI interaction history."
+    },
+    "/logs/{logId}": {
+      "schema": "logs",
+      "description": "Stores system logs for monitoring."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "feedback",
+      "description": "Stores user feedback and ratings."
+    }
+  }
+}

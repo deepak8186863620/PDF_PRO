@@ -1,0 +1,9 @@
+{
+  "name": "PDF & Image Master",
+  "description": "A professional, full-stack application for processing PDFs and images. Features include merging, splitting, compressing, converting, and advanced document intelligence like summarization and OCR.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

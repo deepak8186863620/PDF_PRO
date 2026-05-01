@@ -1,0 +1,413 @@
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Toaster } from "sonner";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ToolCard from "./components/ToolCard";
+import ToolView from "./components/ToolView";
+import Dashboard from "./components/Dashboard";
+import AboutUs from "./components/AboutUs";
+import { TOOLS } from "./constants";
+import {
+  Sparkles, FileText, Image as ImageIcon,
+  Search, LayoutGrid, ArrowRight, Shield, Zap, Globe
+} from "lucide-react";
+import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, OperationType } from "./firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+export default function App() {
+  const [selectedTool, setSelectedTool] = useState(null);
+  const [view, setView] = useState("home");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [user] = useAuthState(auth);
+
+  const categories = [
+    { id: "all", label: "All Tools", icon: LayoutGrid, count: TOOLS.length },
+    { id: "pdf", label: "PDF Tools", icon: FileText, count: TOOLS.filter(t => t.category === "pdf").length },
+    { id: "image", label: "Image Tools", icon: ImageIcon, count: TOOLS.filter(t => t.category === "image").length },
+  ];
+
+  const stats = [
+    { icon: Zap, value: `${TOOLS.length}+`, label: "Tools Available" },
+    { icon: Shield, value: "100%", label: "Secure Processing" },
+    { icon: Globe, value: "Free", label: "No Sign-up Required" },
+  ];
+
+  const filteredTools = TOOLS.filter(tool => {
+    const matchesSearch =
+      tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = activeCategory === "all" || tool.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const getToolsByCategory = (catId) =>
+    filteredTools.filter(t => t.category === catId);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [selectedTool, view]);
+
+  useEffect(() => {
+    const checkHealth = async (retries = 3) => {
+      try {
+        await new Promise(r => setTimeout(r, 2000));
+        const res = await fetch("/api/health");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        console.log("Server Health:", data);
+      } catch (err) {
+        if (retries > 0) checkHealth(retries - 1);
+      }
+    };
+    checkHealth();
+
+    if (user) {
+      const userRef = doc(db, "users", user.uid);
+      getDoc(userRef).then(docSnap => {
+        if (!docSnap.exists()) {
+          setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            createdAt: Timestamp.now(),
+            lastLogin: Timestamp.now(),
+            role: "user",
+          });
+        } else {
+          setDoc(userRef, {
+            lastLogin: Timestamp.now(),
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          }, { merge: true });
+        }
+      }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`));
+    }
+  }, [user]);
+
+  const handleHomeClick = () => { setSelectedTool(null); setView("home"); };
+  const handleDashboardClick = () => { setSelectedTool(null); setView("dashboard"); };
+  const handleAboutClick = () => { setSelectedTool(null); setView("about"); };
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#000000" }}>
+        <Toaster
+          position="top-center"
+          theme="dark"
+          richColors
+          toastOptions={{
+            style: {
+              background: "rgba(24, 24, 27, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              color: "#ffffff",
+              backdropFilter: "blur(20px)",
+            },
+          }}
+        />
+
+        {/* Background layers */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+          {/* Deep gradient base */}
+          <div className="absolute inset-0" style={{
+            background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,255,255,0.03) 0%, transparent 60%)"
+          }} />
+          {/* Animated orbs */}
+          <div className="orb-1 absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full opacity-100" style={{
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
+          }} />
+          <div className="orb-2 absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full" style={{
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
+          }} />
+          <div className="orb-3 absolute top-[30%] right-[5%] w-[35%] h-[35%] rounded-full" style={{
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.01) 0%, transparent 70%)"
+          }} />
+          {/* Subtle grid */}
+          <div className="absolute inset-0 opacity-[0.025]" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+            backgroundSize: "72px 72px"
+          }} />
+        </div>
+
+        <Navbar
+          onDashboardClick={handleDashboardClick}
+          onHomeClick={handleHomeClick}
+          onAboutClick={handleAboutClick}
+        />
+
+        <main className="relative z-10">
+          <AnimatePresence mode="wait">
+            {view === "dashboard" ? (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Dashboard />
+              </motion.div>
+            ) : view === "about" ? (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AboutUs />
+              </motion.div>
+            ) : !selectedTool ? (
+              <motion.div
+                key="home"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="pt-28 md:pt-36 pb-24 px-4 md:px-6"
+              >
+                {/* ── Hero Section ── */}
+                <div className="max-w-5xl mx-auto text-center mb-20 md:mb-28">
+
+                  {/* Top badge */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="inline-flex items-center gap-3 mb-10 px-5 py-2 rounded-full border border-[#2a2a2a] bg-[#111111]"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                      Professional Document Tools
+                    </span>
+                  </motion.div>
+
+                  {/* Headline */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-[52px] sm:text-[68px] md:text-[84px] font-semibold tracking-[-0.04em] text-white mb-8 leading-[1.05]"
+                  >
+                    Every tool you need<br />
+                    for your documents.
+                  </motion.h1>
+
+                  {/* Sub-headline */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="text-[#888888] text-[18px] md:text-[20px] max-w-2xl mx-auto leading-relaxed mb-12 tracking-wide font-medium"
+                  >
+                    Merge, split, compress, convert, and edit PDFs and images with ease. Powerful tools that work directly in your browser.
+                  </motion.p>
+
+                  {/* Search bar */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="max-w-xl mx-auto mb-10"
+                  >
+                    <div className="relative group">
+                      <div
+                        className="absolute -inset-[1px] rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"
+                        style={{ background: "rgba(255,255,255,0.1)" }}
+                      />
+                      <div
+                        className="relative flex items-center rounded-2xl overflow-hidden"
+                        style={{ background: "#161616", border: "1px solid #2a2a2a" }}
+                      >
+                        <Search className="absolute left-5 text-[#555555] group-focus-within:text-white transition-colors" size={20} />
+                        <input
+                          id="tool-search"
+                          type="text"
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          placeholder="Search tools – merge, compress, OCR..."
+                          className="w-full bg-transparent pl-14 pr-5 py-4.5 text-white focus:outline-none placeholder:text-[#555555] text-[16px] font-medium"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* CTA buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
+                  >
+                    <button
+                      onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
+                      className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                    >
+                      <Sparkles size={18} />
+                      Explore All Tools
+                    </button>
+                    <button
+                      onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
+                      className="flex items-center gap-2 bg-[#161616] border border-[#2a2a2a] text-white hover:bg-[#202020] px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                    >
+                      See How It Works
+                      <ArrowRight size={18} />
+                    </button>
+                  </motion.div>
+
+                  {/* Stats row */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.35 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12"
+                  >
+                    {stats.map((stat, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center bg-transparent border border-[#2a2a2a]">
+                          <stat.icon size={20} className="text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white font-bold text-[19px] leading-tight mb-0.5">{stat.value}</p>
+                          <p className="text-[#888888] text-[14px] font-medium leading-none">{stat.label}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                </div>
+
+                {/* ── Tools Section ── */}
+                <div id="tools-section" className="max-w-7xl mx-auto scroll-mt-28">
+
+                  {/* Category tabs */}
+                  <div className="flex items-center justify-center mb-16">
+                    <div
+                      className="flex items-center gap-1 p-2 rounded-[24px]"
+                      style={{ background: "#161616", border: "1px solid #2a2a2a" }}
+                    >
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveCategory(cat.id)}
+                          className={`flex items-center gap-2.5 px-6 py-3.5 rounded-[16px] text-[15px] transition-all duration-200 ${
+                            activeCategory === cat.id
+                              ? "text-black bg-white shadow-lg font-bold"
+                              : "text-[#777777] font-medium hover:text-white"
+                          }`}
+                        >
+                          <cat.icon size={18} />
+                          {cat.label}
+                          <span
+                            className={`text-[12px] font-semibold px-2 py-0.5 rounded-full ml-1 ${
+                              activeCategory === cat.id
+                                ? "bg-[#e5e5e5] text-black"
+                                : "bg-[#222222] text-[#777777]"
+                            }`}
+                          >
+                            {cat.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {filteredTools.length > 0 ? (
+                      <motion.div
+                        key={activeCategory + searchQuery}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="space-y-16"
+                      >
+                        {[
+                          { id: "pdf", label: "PDF Tools", desc: "Professional document management" },
+                          { id: "image", label: "Image Tools", desc: "High-performance image processing" },
+                        ].map(cat => {
+                          const tools = getToolsByCategory(cat.id);
+                          if (tools.length === 0) return null;
+                          if (activeCategory !== "all" && activeCategory !== cat.id) return null;
+
+                          return (
+                            <div key={cat.id}>
+                              {/* Section header */}
+                              <div className="flex flex-col items-center justify-center text-center mb-10">
+                                <p className="text-[11px] font-bold text-[#888888] uppercase tracking-[0.2em] mb-2">{cat.id} tools</p>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">{cat.label}</h2>
+                                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.2em] bg-[#161616] border border-[#2a2a2a] px-4 py-1.5 rounded-full">
+                                  {tools.length} tools
+                                </span>
+                              </div>
+
+                              {/* Tool grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                                {tools.map((tool, idx) => (
+                                  <motion.div
+                                    key={tool.id}
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.04 }}
+                                  >
+                                    <ToolCard
+                                      {...tool}
+                                      onClick={() => setSelectedTool(tool)}
+                                    />
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-28"
+                        style={{ background: "rgba(24,24,27,0.4)", border: "1px dashed rgba(255,255,255,0.15)", borderRadius: "24px" }}
+                      >
+                        <div
+                          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                        >
+                          <Search size={28} className="text-white/60" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">No tools found</h3>
+                        <p className="text-zinc-500 text-sm max-w-xs mx-auto mb-8">
+                          We couldn't find any tools matching "{searchQuery}".
+                        </p>
+                        <button
+                          onClick={() => { setSearchQuery(""); setActiveCategory("all"); }}
+                          className="btn-primary text-sm px-6 py-2.5"
+                        >
+                          Clear search
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="tool-view"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.25 }}
+              >
+                <ToolView tool={selectedTool} onBack={() => setSelectedTool(null)} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+
+        <Footer onAboutClick={handleAboutClick} />
+      </div>
+    </ErrorBoundary>
+  );
+}

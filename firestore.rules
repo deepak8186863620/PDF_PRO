@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - The user's unique ID
+    //   - email: string (required, email format) - The user's email address
+    //   - displayName: string (optional) - The user's display name
+    //   - photoURL: string (optional, url format) - The user's profile photo URL
+    //   - createdAt: timestamp (required) - When the user was created
+    //   - lastLogin: timestamp (optional) - When the user last logged in
+    //   - role: string (optional) - The user's role (e.g., 'admin', 'user')
+    //
+    // Collection: history
+    // Document ID: {historyId}
+    // Fields:
+    //   - userId: string (required) - The ID of the user who performed the operation
+    //   - toolId: string (required) - The ID of the tool used
+    //   - fileName: string (required) - The name of the processed file
+    //   - fileSize: number (optional) - The size of the processed file
+    //   - timestamp: timestamp (required) - When the operation was performed
+    //   - downloadUrl: string (required) - The URL to download the result
+    //
+    // Collection: feedback
+    // Document ID: {feedbackId}
+    // Fields:
+    //   - userId: string (required) - The ID of the user who provided the feedback
+    //   - userEmail: string (optional) - The email of the user
+    //   - userName: string (optional) - The name of the user
+    //   - rating: number (required) - The star rating (1-5)
+    //   - comment: string (optional) - The feedback comment
+    //   - timestamp: timestamp (required) - When the feedback was provided
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "deepakprajapatid021@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*") || url.matches("^/api/.*"));
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(data, ['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             (data.role == 'user' || isAdmin()) &&
+             (!('displayName' in data) || (data.displayName is string)) &&
+             (!('photoURL' in data) || (data.photoURL is string)) &&
+             (!('lastLogin' in data) || data.lastLogin is timestamp);
+    }
+
+    function isValidHistory(data) {
+      return hasRequiredFields(data, ['userId', 'toolId', 'fileName', 'timestamp', 'downloadUrl']) &&
+             data.userId == request.auth.uid &&
+             data.toolId is string && data.toolId.size() > 0 && data.toolId.size() < 100 &&
+             data.fileName is string && data.fileName.size() > 0 && data.fileName.size() < 255 &&
+             data.timestamp is timestamp &&
+             isValidUrl(data.downloadUrl) &&
+             (!('fileSize' in data) || data.fileSize is number);
+    }
+
+    function isValidFeedback(data) {
+      return hasRequiredFields(data, ['userId', 'rating', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.timestamp is timestamp &&
+             (!('comment' in data) || (data.comment is string && data.comment.size() < 1000)) &&
+             (!('userName' in data) || (data.userName is string && data.userName.size() < 100)) &&
+             (!('userEmail' in data) || isValidEmail(data.userEmail));
+    }
+
+    function isValidAIInteraction(data) {
+      return hasRequiredFields(data, ['userId', 'prompt', 'response', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.prompt is string && data.prompt.size() < 20000 &&
+             data.response is string && data.response.size() < 20000 &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(data, ['level', 'message', 'timestamp']) &&
+             data.level in ['info', 'warn', 'error'] &&
+             data.message is string && data.message.size() < 5000 &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /history/{historyId} {
+      // Use explicit get and list for clarity
+      allow get: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isAuthenticated() && isValidHistory(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidFeedback(request.resource.data);
+    }
+
+    match /aiInteractions/{interactionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidAIInteraction(request.resource.data);
+    }
+
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated(); // Allow users to log client-side errors
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
