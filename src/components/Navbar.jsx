@@ -163,11 +163,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                         className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover"
                       />
                     )}
-                    <img 
-                      src={deepakImg} 
-                      alt="Deepak Prajapati" 
-                      className="h-7 w-auto rounded-lg border border-white/10 hidden lg:inline-block"
-                    />
+
 
                   </button>
                   <button
@@ -246,11 +242,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                       />
                     )}
                     <div>
-                      <img 
-                        src={deepakImg} 
-                        alt="Deepak Prajapati" 
-                        className="h-6 w-auto rounded-md mb-0.5"
-                      />
+
                       <p className="text-zinc-500 text-xs">{user.email}</p>
                     </div>
 

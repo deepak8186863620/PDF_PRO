@@ -25,6 +25,27 @@ export default function FeedbackModal({ isOpen, onClose }) {
         comment,
         timestamp: Timestamp.now()
       });
+
+      // Send email notification automatically via FormSubmit
+      try {
+        await fetch("https://formsubmit.co/ajax/deepakprajapati3227@gmail.com", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            _subject: `PDF MASTER Feedback - ${rating}/5 Stars`,
+            User_Name: user.displayName || "Anonymous",
+            User_Email: user.email || "No email",
+            Rating: `${rating} out of 5`,
+            Message: comment || "No comments provided",
+          })
+        });
+      } catch (emailError) {
+        console.error("Failed to send email notification", emailError);
+      }
+
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
