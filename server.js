@@ -1467,6 +1467,60 @@ ${context.substring(0, 28000)}
   });
 
   /* ══════════════════════════════════════════
+     AI — OCR STRUCTURED (for PDF Editor)
+  ══════════════════════════════════════════ */
+  app.post("/api/ai/ocr-structured", aiLimiter, async (req, res) => {
+    try {
+      const { base64, mimeType } = req.body;
+      if (!base64) return res.status(400).json({ error: "Missing image data." });
+
+      const ai = getAI();
+      
+      const prompt = `Perform OCR on this image. Return ONLY a valid JSON array of objects representing each block of text found. 
+Each object must have exactly these keys:
+- text: The extracted text string
+- x: The X coordinate of the top-left corner (relative to image width, 0-1000 scale)
+- y: The Y coordinate of the top-left corner (relative to image height, 0-1000 scale)
+- width: The width of the text block (relative to image width, 0-1000 scale)
+- height: The height of the text block (relative to image height, 0-1000 scale)
+
+Example output:
+[{"text": "Hello World", "x": 100, "y": 150, "width": 300, "height": 40}]
+
+Return only the raw JSON array. No markdown formatting, no \`\`\`json block.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inlineData: { mimeType: mimeType || "image/jpeg", data: base64 } },
+              { text: prompt }
+            ]
+          }
+        ],
+        config: { temperature: 0.1 }
+      });
+
+      let responseText = result.text || "[]";
+      responseText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+      
+      let parsed = [];
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error("Failed to parse OCR structured data from AI.");
+      }
+
+      res.json(parsed);
+    } catch (err) {
+      logger.error("ai/ocr-structured: " + err.message);
+      res.status(500).json({ error: err.message || "Structured OCR failed." });
+    }
+  });
+
+  /* ══════════════════════════════════════════
      DOWNLOAD
   ══════════════════════════════════════════ */
   app.get("/api/download/:id", async (req, res) => {
