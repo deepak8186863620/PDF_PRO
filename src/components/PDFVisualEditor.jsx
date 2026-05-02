@@ -4,8 +4,8 @@ import { X, Save, Type, RotateCw, Trash2, ChevronLeft, ChevronRight, ZoomIn, Zoo
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 
-// Set up worker
-if (typeof window !== "undefined" && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+// Set up worker — matches installed pdfjs-dist version
+if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 }
 

@@ -60,11 +60,13 @@ export default defineConfig(({ mode }) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'https://pdf-pro-dx2i.onrender.com',
+          target: 'http://localhost:3000',
           changeOrigin: true,
-          secure: true,
         },
       },
+    },
+    optimizeDeps: {
+      include: ['pdfjs-dist'],
     },
   };
 });

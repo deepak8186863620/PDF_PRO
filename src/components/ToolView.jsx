@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash } from "lucide-react";
 import FileUpload from "./FileUpload";
 import CameraScanner from "./CameraScanner";
-import PDFPreviewBar from "./PDFPreviewBar";
+import PDFPreviewBar, { PDFDocumentPreview } from "./PDFPreviewBar";
 import PDFVisualEditor from "./PDFVisualEditor";
 import ProcessingOverlay from "./ProcessingOverlay";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ export default function ToolView({ tool, onBack }) {
   const [chatInput, setChatInput] = useState("");
   const [pdfContext, setPdfContext] = useState(null);
   const [isChatting, setIsChatting] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("Processing your files...");
   const [user] = useAuthState(auth);
 
   // Range selector state (for remove-pages tool)
@@ -226,6 +227,19 @@ export default function ToolView({ tool, onBack }) {
 
     setIsProcessing(true);
     setProgress(10);
+    // Set context-specific processing message
+    const statusMap = {
+      "summarize-pdf": "Extracting text from PDF...",
+      "chat-pdf": "Analyzing document for chat...",
+      "ocr-pdf": "Running AI OCR engine...",
+      "pdf-to-word": "Converting PDF to Word...",
+      "merge-pdf": "Merging PDF documents...",
+      "split-pdf": "Splitting pages...",
+      "compress-pdf": "Compressing PDF...",
+      "edit-pdf": "Preparing editor...",
+      "word-to-pdf": "Converting Word to PDF...",
+    };
+    setProcessingStatus(statusMap[tool.id] || "Processing your files...");
 
     try {
       const formData = new FormData();
@@ -339,16 +353,51 @@ export default function ToolView({ tool, onBack }) {
           throw new Error(errorData.error || "Failed to extract text from PDF");
         }
         const { text } = await extractRes.json();
+        setProgress(75);
+        setProcessingStatus("Generating AI summary...");
 
-        const sumRes = await fetch("/api/ai/summarize", {
+        // Use streaming for real-time summary output
+        let streamedSummary = "";
+        // Set up the result file first so summary view is shown
+        setResultFile({ id: uploadedFiles[0].id, name: "summary.txt", size: 0 });
+        setSummary(""); // clear any old summary first
+        setProgress(100);
+        // Hide processing overlay so summary streams in live
+        setIsProcessing(false);
+        setProgress(0);
+
+        const streamRes = await fetch("/api/ai/summarize-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
         });
 
-        if (!sumRes.ok) throw new Error(await sumRes.text());
-        const sumData = await sumRes.json();
-        const summaryText = sumData.summary;
+        if (!streamRes.ok) throw new Error("AI summarization failed");
+
+        const reader = streamRes.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                if (parsed.error) throw new Error(parsed.error);
+                if (parsed.text) {
+                  streamedSummary += parsed.text;
+                  setSummary(streamedSummary);
+                }
+                if (parsed.done) break;
+              } catch (e) { /* skip parse errors */ }
+            }
+          }
+        }
+
+        const summaryText = streamedSummary;
         setSummary(summaryText);
 
         if (user) {
@@ -374,6 +423,10 @@ export default function ToolView({ tool, onBack }) {
             name: "summary.txt" 
           }) 
         };
+        // Early return: streaming already set isProcessing=false and summary state
+        saveHistory({ id: uploadedFiles[0].id, name: "summary.txt", size: 0 });
+        toast.success("Summary generated!");
+        return;
       } else if (tool.id === "ocr-pdf") {
         const base64Res = await fetch("/api/pdf/get-base64", {
           method: "POST",
@@ -531,10 +584,126 @@ export default function ToolView({ tool, onBack }) {
   };
 
   const downloadResult = () => {
+    if (summary && tool.id === "summarize-pdf") {
+      toast.promise(
+        async () => {
+          const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+          const pdfDoc = await PDFDocument.create();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+          let page = pdfDoc.addPage();
+          const { width, height } = page.getSize();
+          const margin = 50;
+          let y = height - margin;
+          const fontSize = 11;
+          const lineHeight = fontSize * 1.6;
+
+          const lines = summary.split("\n");
+
+          const wrapText = (text, currentFont, size, maxWidth) => {
+            const words = text.split(" ");
+            let wrapped = [];
+            let currentLine = words[0] || "";
+            
+            for (let i = 1; i < words.length; i++) {
+              const word = words[i];
+              const w = currentFont.widthOfTextAtSize(currentLine + " " + word, size);
+              if (w < maxWidth) {
+                currentLine += " " + word;
+              } else {
+                wrapped.push(currentLine);
+                currentLine = word;
+              }
+            }
+            if (currentLine) wrapped.push(currentLine);
+            return wrapped;
+          };
+
+          // Draw title
+          const title = `Summary: ${files[0]?.name || "Document"}`;
+          page.drawText(title, {
+            x: margin,
+            y: y,
+            size: 16,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.3),
+          });
+          y -= lineHeight * 2;
+
+          for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) {
+              y -= lineHeight * 0.5;
+              continue;
+            }
+
+            let currentFont = font;
+            let currentSize = fontSize;
+            let indent = 0;
+
+            // Basic markdown heuristics
+            if (line.startsWith("#")) {
+              currentFont = boldFont;
+              currentSize = fontSize + 3;
+              line = line.replace(/^#+\s*/, "");
+              y -= lineHeight * 0.5; // Extra space before headings
+            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+              indent = 15;
+            } else if (line.match(/^\d+\.\s/)) {
+              indent = 15;
+            }
+
+            // Strip bold/italic markdown chars for clean PDF
+            let isBoldLine = false;
+            if (line.includes("**")) {
+              if (line.trim().startsWith("**")) isBoldLine = true;
+              line = line.replace(/\*\*/g, "");
+            }
+            if (isBoldLine) currentFont = boldFont;
+
+            const wrappedLines = wrapText(line, currentFont, currentSize, width - margin * 2 - indent);
+            
+            for (const wLine of wrappedLines) {
+              if (y < margin) {
+                page = pdfDoc.addPage();
+                y = height - margin;
+              }
+              page.drawText(wLine, {
+                x: margin + indent,
+                y: y,
+                size: currentSize,
+                font: currentFont,
+                color: rgb(0.15, 0.15, 0.15),
+              });
+              y -= lineHeight;
+            }
+          }
+
+          const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `Summary_${files[0]?.name ? files[0].name.replace(".pdf", "") : "Document"}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        },
+        {
+          loading: "Generating PDF...",
+          success: "Summary downloaded as PDF!",
+          error: "Failed to generate PDF"
+        }
+      );
+      return;
+    }
+
     if (summary || ocrText) {
       const blob = new Blob([summary || ocrText || ""], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
+
       link.href = url;
       const finalName = customFileName.trim() 
         ? (customFileName.trim().toLowerCase().endsWith(".txt") ? customFileName.trim() : `${customFileName.trim()}.txt`)
@@ -651,6 +820,19 @@ export default function ToolView({ tool, onBack }) {
                   multiple={tool.id === "merge-pdf" || tool.id === "add-pages" || tool.id === "jpg-to-pdf" || tool.id === "scan-to-pdf"}
                 />
               </div>
+
+              {/* ── Dynamic Document Preview (shown for all PDF tools when a PDF file is selected) ── */}
+              {files.length > 0 &&
+                files[0].name?.toLowerCase().endsWith(".pdf") &&
+                tool.id !== "ocr-pdf" &&
+                tool.id !== "summarize-pdf" &&
+                tool.id !== "remove-pages" &&
+                tool.id !== "split-pdf" &&
+                tool.id !== "rotate-pdf" &&
+                tool.id !== "edit-pdf" &&
+                tool.id !== "chat-pdf" && (
+                  <PDFDocumentPreview file={files[0]} />
+                )}
 
               {tool.id === "scan-to-pdf" && (
                 <div className="mt-8 flex justify-center">
@@ -1026,6 +1208,20 @@ export default function ToolView({ tool, onBack }) {
                 </div>
               )}
               
+              {tool.id === "chat-pdf" && files.length > 0 && (
+                <div className="space-y-6">
+                  <PDFPreviewBar
+                    file={files[0]}
+                    onSelectionChange={(selected) => setPagesToProcess(selected.join(","))}
+                    title="Select Pages to Chat About"
+                    toolId={tool.id}
+                  />
+                  <p className="max-w-md mx-auto text-[10px] text-zinc-600 italic text-center">
+                    Note: Select specific pages or leave unselected to chat about the entire document.
+                  </p>
+                </div>
+              )}
+
               {tool.id === "chat-pdf" && (
                 <div className="mt-12 flex justify-center">
                   <button
@@ -1205,7 +1401,8 @@ export default function ToolView({ tool, onBack }) {
         </AnimatePresence>
       </div>
 
-      {isProcessing && <ProcessingOverlay status="Processing your files..." progress={progress} />}
+      {isProcessing && <ProcessingOverlay status={processingStatus} progress={progress} />}
+
       
       {showCamera && (
         <CameraScanner 

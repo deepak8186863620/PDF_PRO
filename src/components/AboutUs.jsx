@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare } from "lucide-react";
 import deepakImg from "../assets/deepak.png";
+import deepakRealImg from "../assets/deepak_real.jpeg";
 import FeedbackModal from "./FeedbackModal";
 
 export default function AboutUs() {
@@ -11,23 +12,17 @@ export default function AboutUs() {
       name: "Deepak Prajapati",
       role: "Lead Developer & Founder",
       bio: "Passionate about building high-performance web applications and document processing tools. Leading the vision for PDF MASTER to make document management accessible to everyone.",
-      image: deepakImg,
-      socials: { github: "#", linkedin: "#", twitter: "#", email: "deepakprajapatid021@gmail.com" }
+      image: deepakRealImg,
+      socials: { github: "https://github.com/deepak8186863620", linkedin: "https://www.linkedin.com/in/deepak-prajapati-819b81327/", twitter: "#", email: "deepakprajapatid021@gmail.com" }
     },
     {
-      name: "Sarah Designer",
+      name: "Nishath",
       role: "Lead UI/UX Designer",
       bio: "Obsessed with creating beautiful, intuitive interfaces. Making sure every click in PDF MASTER feels natural and looks stunning.",
       image: deepakImg, // Replace with Sarah's image
       socials: { github: "#", linkedin: "#", twitter: "#", email: "#" }
-    },
-    {
-      name: "Alex Engineer",
-      role: "Backend Architecture",
-      bio: "Architecting robust and scalable systems to ensure your documents are processed lightning fast and securely.",
-      image: deepakImg, // Replace with Alex's image
-      socials: { github: "#", linkedin: "#", twitter: "#", email: "#" }
     }
+
   ];
 
   return (
