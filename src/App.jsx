@@ -165,7 +165,16 @@ export default function App() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                <Dashboard />
+                <Dashboard 
+                  onNavigateHome={handleHomeClick} 
+                  onSelectTool={(toolId) => {
+                    const tool = TOOLS.find(t => t.id === toolId);
+                    if (tool) {
+                      setSelectedTool(tool);
+                      setView("home");
+                    }
+                  }} 
+                />
               </motion.div>
             ) : view === "about" ? (
               <motion.div
