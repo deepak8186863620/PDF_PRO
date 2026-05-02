@@ -46,6 +46,15 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick }) {
       {/* ── Top Section: Login Card ── */}
       <div className="min-h-[100dvh] flex flex-col items-center justify-center relative py-12 px-4">
         
+        {/* Floating Back Button */}
+        <button
+          onClick={onBack}
+          className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-full text-white font-bold text-xs uppercase tracking-widest backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 group"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          Back to Home
+        </button>
+
         {/* Background glow for the login section */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
         
