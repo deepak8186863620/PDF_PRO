@@ -46,7 +46,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const navLinks = [
-    { label: "MERGE PDF", action: onHomeClick },
+    { label: "HOME PAGE", action: onHomeClick },
     { label: "SPLIT PDF", action: onHomeClick },
     { label: "ABOUT US", action: onAboutClick },
   ];
