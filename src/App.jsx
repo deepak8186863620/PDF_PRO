@@ -11,7 +11,7 @@ import Login from "./components/Login";
 import { TOOLS } from "./constants";
 import {
   Sparkles, FileText, Image as ImageIcon,
-  Search, LayoutGrid, ArrowRight, Shield, Zap, Globe
+  Search, LayoutGrid, ArrowRight, Shield, Zap, Globe, Code2
 } from "lucide-react";
 import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, OperationType } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -201,34 +201,34 @@ export default function App() {
 
                   {/* Top badge */}
                   <motion.div
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
-                    className="inline-flex items-center gap-3 mb-10 px-5 py-2 rounded-full border border-[#2a2a2a] bg-[#111111]"
+                    className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm font-bold text-white mb-8 uppercase tracking-widest"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-                      Professional Document Tools
-                    </span>
+                    <Code2 size={16} />
+                    <span>Professional Document Tools</span>
                   </motion.div>
 
                   {/* Headline */}
                   <motion.h1
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-[52px] sm:text-[68px] md:text-[84px] font-semibold tracking-[-0.04em] text-white mb-8 leading-[1.05]"
+                    className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[0.9] uppercase"
                   >
-                    Every tool you need<br />
-                    for your documents.
+                    EVERY TOOL YOU NEED <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-500">
+                      FOR YOUR DOCUMENTS
+                    </span>
                   </motion.h1>
 
                   {/* Sub-headline */}
                   <motion.p
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="text-[#888888] text-[18px] md:text-[20px] max-w-2xl mx-auto leading-relaxed mb-12 tracking-wide font-medium"
+                    className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed mb-12"
                   >
                     Merge, split, compress, convert, and edit PDFs and images with ease. Powerful tools that work directly in your browser.
                   </motion.p>
