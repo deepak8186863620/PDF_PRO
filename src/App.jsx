@@ -8,6 +8,7 @@ import ToolView from "./components/ToolView";
 import Dashboard from "./components/Dashboard";
 import AboutUs from "./components/AboutUs";
 import Login from "./components/Login";
+import FeedbackPage from "./components/FeedbackPage";
 import { TOOLS } from "./constants";
 import {
   Sparkles, FileText, Image as ImageIcon,
@@ -26,7 +27,7 @@ export default function App() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user && view !== "login" && view !== "about") {
+      if (!user && view !== "login" && view !== "about" && view !== "feedback") {
         setView("login");
         setSelectedTool(null);
       } else if (user && view === "login") {
@@ -103,6 +104,7 @@ export default function App() {
   const handleHomeClick = () => { setSelectedTool(null); setView("home"); };
   const handleDashboardClick = () => { setSelectedTool(null); setView("dashboard"); };
   const handleAboutClick = () => { setSelectedTool(null); setView("about"); };
+  const handleFeedbackClick = () => { setSelectedTool(null); setView("feedback"); };
   const handleLoginClick = () => { setSelectedTool(null); setView("login"); };
 
   return (
@@ -151,6 +153,7 @@ export default function App() {
             onDashboardClick={handleDashboardClick}
             onHomeClick={handleHomeClick}
             onAboutClick={handleAboutClick}
+            onFeedbackClick={handleFeedbackClick}
             onLoginClick={handleLoginClick}
           />
         )}
@@ -184,7 +187,17 @@ export default function App() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                <AboutUs />
+                <AboutUs onFeedbackClick={handleFeedbackClick} />
+              </motion.div>
+            ) : view === "feedback" ? (
+              <motion.div
+                key="feedback"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <FeedbackPage />
               </motion.div>
             ) : view === "login" ? (
               <motion.div

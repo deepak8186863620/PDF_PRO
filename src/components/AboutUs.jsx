@@ -3,10 +3,8 @@ import { motion } from "motion/react";
 import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare } from "lucide-react";
 import deepakImg from "../assets/deepak.png";
 import deepakRealImg from "../assets/deepak_real.jpeg";
-import FeedbackModal from "./FeedbackModal";
 
-export default function AboutUs() {
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+export default function AboutUs({ onFeedbackClick }) {
   const team = [
     {
       name: "Deepak Prajapati",
@@ -173,7 +171,7 @@ export default function AboutUs() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={() => setIsFeedbackOpen(true)}
+                onClick={onFeedbackClick}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-10 py-5 rounded-full font-black text-sm uppercase tracking-widest hover:scale-105 transition-all active:scale-95"
               >
                 <MessageSquare size={20} />
@@ -189,11 +187,6 @@ export default function AboutUs() {
             </div>
           </div>
         </motion.div>
-
-        <FeedbackModal
-          isOpen={isFeedbackOpen}
-          onClose={() => setIsFeedbackOpen(false)}
-        />
       </div>
     </div>
   );
