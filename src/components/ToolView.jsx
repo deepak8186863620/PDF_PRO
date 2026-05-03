@@ -752,7 +752,7 @@ export default function ToolView({ tool, onBack }) {
       <div className="max-w-3xl mx-auto">
         <button
           onClick={onBack}
-          className="group flex items-center gap-2 px-4 py-2.5 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/60 hover:border-zinc-700/80 text-zinc-400 hover:text-white rounded-full transition-all duration-300 text-sm font-semibold shadow-sm backdrop-blur-sm mb-8 w-fit"
+          className="group flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg mb-8 w-fit"
         >
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
           Back to Tools
