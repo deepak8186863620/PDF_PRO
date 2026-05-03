@@ -10,7 +10,6 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const checkHealth = async () => {
