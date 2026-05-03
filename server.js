@@ -1271,7 +1271,7 @@ DOCUMENT (${wordCount} words):
 ${text.substring(0, 45000)}`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: { maxOutputTokens: 800, temperature: 0.2 },
       });
@@ -1333,7 +1333,7 @@ ${text.substring(0, 45000)}`;
       let stream;
       try {
         stream = await ai.models.generateContentStream({
-          model: "gemini-2.0-flash",
+          model: "gemini-2.5-flash",
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           config: { maxOutputTokens: 1200, temperature: 0.2 },
         });
@@ -1368,7 +1368,7 @@ ${text.substring(0, 45000)}`;
 
       const ai = getAI();
       const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         contents: [{
           role: "user",
           parts: [
@@ -1397,7 +1397,7 @@ ${text.substring(0, 45000)}`;
 
       const ai = getAI();
       const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         contents: [{
           role: "user",
           parts: [
@@ -1486,7 +1486,7 @@ ${context.substring(0, 28000)}
       }
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents,
         config: { maxOutputTokens: 1500, temperature: 0.15 },
       });
@@ -1530,7 +1530,7 @@ Example output:
 Return only the raw JSON array. No markdown formatting, no \`\`\`json block.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: [
           {
             role: "user",
