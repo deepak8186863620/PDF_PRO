@@ -76,37 +76,40 @@ export default function FeedbackModal({ isOpen, onClose }) {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[32px] overflow-hidden shadow-2xl"
+            className="relative w-full max-w-md bg-gradient-to-b from-[#111111] to-[#0A0D14] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
           >
+            {/* Decorative background glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-white/5 blur-[100px] rounded-full pointer-events-none" />
+
             {isSuccess ? (
-              <div className="p-12 text-center flex flex-col items-center gap-6">
+              <div className="p-12 text-center flex flex-col items-center gap-6 relative z-10">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center text-white"
+                  className="w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                 >
-                  <CheckCircle2 size={40} />
+                  <CheckCircle2 size={48} />
                 </motion.div>
-                <div>
-                  <h3 className="text-2xl font-black text-white mb-2">Thank You!</h3>
-                  <p className="text-zinc-400">Your feedback helps us make PDF MASTER better for everyone.</p>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black text-white tracking-tight">Thank You!</h3>
+                  <p className="text-zinc-400 font-medium leading-relaxed">Your feedback helps us build the future of document processing.</p>
                 </div>
               </div>
             ) : (
               <>
-                <div className="p-8 border-b border-zinc-800 flex items-center justify-between">
-                  <h3 className="text-xl font-black text-white tracking-tight">Send Feedback</h3>
+                <div className="p-8 border-b border-white/5 flex items-center justify-between relative z-10">
+                  <h3 className="text-2xl font-black text-white tracking-tight">Send Feedback</h3>
                   <button 
                     onClick={onClose}
-                    className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-500 hover:text-white transition-colors"
+                    className="p-2 hover:bg-white/10 rounded-full text-zinc-500 hover:text-white transition-all active:scale-95"
                   >
                     <X size={20} />
                   </button>
                 </div>
 
-                <div className="p-8 space-y-8">
-                  <div className="text-center space-y-4">
-                    <p className="text-zinc-400 font-medium">How would you rate your experience?</p>
+                <div className="p-8 space-y-8 relative z-10">
+                  <div className="text-center space-y-5">
+                    <p className="text-zinc-400 font-bold uppercase tracking-widest text-[11px]">How would you rate your experience?</p>
                     <div className="flex items-center justify-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -117,11 +120,11 @@ export default function FeedbackModal({ isOpen, onClose }) {
                           className="p-1 transition-transform active:scale-90"
                         >
                           <Star
-                            size={32}
-                            className={`transition-colors duration-200 ${
+                            size={36}
+                            className={`transition-all duration-300 ${
                               star <= (hover || rating)
-                                ? "fill-white text-white"
-                                : "text-zinc-700"
+                                ? "fill-white text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] scale-110"
+                                : "text-zinc-700/50 hover:text-zinc-600"
                             }`}
                           />
                         </button>
@@ -129,25 +132,25 @@ export default function FeedbackModal({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-zinc-500 uppercase tracking-widest">
-                      Your Comments (Optional)
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                      Your Comments <span className="text-zinc-700 font-normal">(Optional)</span>
                     </label>
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       placeholder="Tell us what you think..."
-                      className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white transition-colors resize-none"
+                      className="w-full h-32 bg-black/50 border border-white/5 rounded-2xl p-5 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all resize-none shadow-inner"
                     />
                   </div>
 
                   <button
                     disabled={rating === 0 || isSubmitting}
                     onClick={handleSubmit}
-                    className="w-full bg-white disabled:bg-zinc-800 text-black disabled:text-zinc-600 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    className="w-full bg-white disabled:bg-white/10 text-black disabled:text-white/30 py-4 rounded-full font-black text-[13px] uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 active:scale-95 disabled:hover:scale-100 transition-all shadow-xl hover:shadow-white/10"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
                         <Send size={18} />
