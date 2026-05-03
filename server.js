@@ -18,8 +18,6 @@ import morgan from "morgan";
 import winston from "winston";
 import rateLimit from "express-rate-limit";
 import { pipeline } from "stream/promises";
-import helmet from "helmet";
-import compression from "compression";
 
 const require = createRequire(import.meta.url);
 
@@ -179,51 +177,29 @@ async function startServer() {
 
   const app = express();
 
-  // Trust proxy is required if deployed behind a reverse proxy (e.g., Render, Heroku) 
-  // so rate limiters and IP checks work correctly.
-  app.set("trust proxy", 1);
-
-  // Security Headers
-  app.use(helmet({
-    contentSecurityPolicy: false, // Disabled if frontend needs external scripts/styles (like Firebase)
-    crossOriginEmbedderPolicy: false, // Disabled to avoid breaking external resources
-    crossOriginOpenerPolicy: false // CRITICAL: Must be false or Firebase Google Auth popup gets blocked (auth/popup-closed-by-user)
-  }));
-
   // Middlewares
-  const allowedOrigins = [
-    "http://localhost:5173", 
-    "http://localhost:3000",
-    process.env.VITE_API_URL // If frontend URL is set in env
-  ].filter(Boolean);
-
-  app.use(cors({ 
-    origin: function(origin, callback) {
-      if (!origin || allowedOrigins.some(url => origin.includes(url) || url.includes(origin))) {
-        callback(null, true);
-      } else {
-        // If it's a completely unknown origin, block it in production
-        if (process.env.NODE_ENV === "production") {
-          callback(new Error('Not allowed by CORS'));
-        } else {
-          callback(null, true); // Allow in dev
-        }
-      }
-    }, 
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] 
-  }));
-
+  app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] }));
   app.use(express.json({ limit: MAX_UPLOAD_SIZE }));
   app.use(express.urlencoded({ extended: true, limit: MAX_UPLOAD_SIZE }));
   app.use(morgan("dev"));
 
-  // Global Response Compression (handles JSON, HTML, CSS, JS)
-  app.use(compression({
-    filter: (req, res) => {
-      if (req.headers['x-no-compression']) return false;
-      return compression.filter(req, res);
+  // Compression for JSON responses
+  app.use((req, res, next) => {
+    const ae = req.headers["accept-encoding"] || "";
+    if (ae.includes("gzip")) {
+      const origJson = res.json.bind(res);
+      res.json = (body) => {
+        const str = JSON.stringify(body);
+        if (str.length < 2048) return origJson(body);
+        const buf = zlib.gzipSync(str);
+        res.setHeader("Content-Encoding", "gzip");
+        res.setHeader("Content-Type", "application/json");
+        res.send(buf);
+        return res;
+      };
     }
-  }));
+    next();
+  });
 
   /* ══════════════════════════════════════════
      UPLOAD
@@ -1669,19 +1645,7 @@ Return only the raw JSON array. No markdown formatting, no \`\`\`json block.`;
     }
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    
-    // Serve static assets with caching (Vite hashes filenames in the assets folder)
-    app.use(express.static(distPath, { 
-      setHeaders: (res, path) => {
-        if (path.includes('/assets/')) {
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        } else {
-          // Do not cache index.html or service workers to ensure updates are immediate
-          res.setHeader('Cache-Control', 'no-cache');
-        }
-      }
-    }));
-    
+    app.use(express.static(distPath, { maxAge: "7d", etag: true }));
     app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
 
