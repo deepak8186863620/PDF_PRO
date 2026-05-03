@@ -129,7 +129,13 @@ export default function ToolView({ tool, onBack }) {
       }
     } catch (error) {
       console.error("Chat Error:", error);
-      toast.error("Failed to get AI response: " + (error.message || "Unknown error"));
+      const errMsg = error.message || "Unknown error";
+      const userFriendly = errMsg.includes("API_KEY") || errMsg.includes("quota")
+        ? "AI service is temporarily unavailable. Please try again later."
+        : "Failed to get AI response: " + errMsg;
+      toast.error(userFriendly);
+      // Remove the optimistic user message if AI totally failed
+      setChatMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
     } finally {
       setIsChatting(false);
     }
@@ -380,19 +386,26 @@ export default function ToolView({ tool, onBack }) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value);
+          const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n");
           for (const line of lines) {
             if (line.startsWith("data: ")) {
               try {
                 const parsed = JSON.parse(line.slice(6));
-                if (parsed.error) throw new Error(parsed.error);
+                if (parsed.error) {
+                  // Surface AI errors to the user immediately
+                  toast.error("AI Error: " + parsed.error);
+                  setIsProcessing(false);
+                  setResultFile(null);
+                  setSummary(null);
+                  return;
+                }
                 if (parsed.text) {
                   streamedSummary += parsed.text;
                   setSummary(streamedSummary);
                 }
                 if (parsed.done) break;
-              } catch (e) { /* skip parse errors */ }
+              } catch (_e) { /* skip partial SSE parse errors */ }
             }
           }
         }

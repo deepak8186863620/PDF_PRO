@@ -158,6 +158,9 @@ function getAI() {
   if (!_ai) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not configured on server");
+    // Explicitly remove GOOGLE_API_KEY so the @google/genai SDK uses ONLY our key.
+    // The SDK auto-picks GOOGLE_API_KEY from env and overrides the `apiKey` param otherwise.
+    delete process.env.GOOGLE_API_KEY;
     _ai = new GoogleGenAI({ apiKey });
   }
   return _ai;
@@ -1298,23 +1301,48 @@ ${text.substring(0, 45000)}`;
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
 
       const ai = getAI();
-      const prompt = `You are an expert document summarizer. Provide a comprehensive summary with:
-1. **Overview** — 2-3 sentence abstract
-2. **Key Points** — bullet list of main takeaways
-3. **Important Details** — key facts, numbers, dates
+      const wordCount = text.trim().split(/\s+/).length;
+      const prompt = `You are an expert document analyst. Analyze the following document and provide a structured, comprehensive summary.
 
-DOCUMENT:
+Your summary MUST include:
+## Overview
+A 2-3 sentence abstract of the entire document.
+
+## Key Points
+- Bullet points covering the most important information (4-8 points)
+
+## Main Topics
+List the primary subjects and themes covered.
+
+## Notable Details
+Any important numbers, dates, names, or specific facts.
+
+Formatting rules:
+- Use **bold** for headings and key terms
+- Use bullet points (•) for lists
+- Keep total response under 500 words
+- Write in clear, professional English
+
+DOCUMENT (${wordCount} words):
 ${text.substring(0, 45000)}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await ai.models.generateContentStream({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: { maxOutputTokens: 800, temperature: 0.2 },
-      });
+      let stream;
+      try {
+        stream = await ai.models.generateContentStream({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { maxOutputTokens: 1200, temperature: 0.2 },
+        });
+      } catch (initErr) {
+        logger.error("ai/summarize-stream init: " + initErr.message);
+        res.write(`data: ${JSON.stringify({ error: initErr.message })}\n\n`);
+        res.end();
+        return;
+      }
 
       for await (const chunk of stream) {
         const chunkText = chunk.text || "";
@@ -1326,8 +1354,7 @@ ${text.substring(0, 45000)}`;
       res.end();
     } catch (err) {
       logger.error("ai/summarize-stream: " + err.message);
-      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-      res.end();
+      try { res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`); res.end(); } catch (_) {}
     }
   });
 
@@ -1400,50 +1427,63 @@ ${text.substring(0, 45000)}`;
       if (!message || !message.trim()) return res.status(400).json({ error: "No message provided." });
 
       const ai = getAI();
-      
-      // Build a focused system context
-      const systemPart = context
-        ? `You are an intelligent document assistant. Your job is to answer questions ONLY based on the document content provided below. 
+
+      // Build conversation with proper role alternation for Gemini
+      const rawContents = [];
+
+      if (context && context.trim()) {
+        // Inject the document as the first turn so the model has full context
+        rawContents.push({
+          role: "user",
+          parts: [{ text: `You are an intelligent document assistant. Answer questions ONLY based on the document content below.
 - Be specific, accurate, and cite relevant parts of the document.
 - If the answer is not in the document, say "This information is not in the document."
-- Keep answers concise and well-formatted using markdown.
-- For lists, use bullet points. For numbers/stats, be exact.
+- Keep answers concise and well-formatted (use markdown: bold, bullets, headers).
 
 DOCUMENT CONTENT (${context.length} characters):
 ---
 ${context.substring(0, 28000)}
----`
-        : "You are a helpful document assistant. Help the user with their document-related questions.";
-
-      // Build conversation with proper role alternation for Gemini
-      const contents = [];
-      
-      // Add system context as first user message if we have it
-      if (context) {
-        contents.push({
-          role: "user",
-          parts: [{ text: systemPart }]
+---` }]
         });
-        contents.push({
+        rawContents.push({
           role: "model",
-          parts: [{ text: "I've read the document and I'm ready to answer your questions about it. What would you like to know?" }]
+          parts: [{ text: "I have read the document and I'm ready to answer your questions about it." }]
         });
       }
-      
-      // Add conversation history (last 8 turns)
-      const recentHistory = history.slice(-8);
+
+      // Add conversation history (last 8 turns), skipping frontend placeholder messages
+      const recentHistory = history.slice(-8).filter(
+        h => !(h.role === "model" && (h.text.includes("I've analyzed your document") || h.text.includes("I have read the document")))
+      );
       for (const h of recentHistory) {
-        contents.push({
+        rawContents.push({
           role: h.role === "user" ? "user" : "model",
-          parts: [{ text: h.text }]
+          parts: [{ text: h.text || "..." }]
         });
       }
-      
-      // Add current question
-      contents.push({
+
+      // Add the current user message
+      rawContents.push({
         role: "user",
         parts: [{ text: message.trim() }]
       });
+
+      // Enforce strict role alternation required by Gemini API
+      const contents = [];
+      for (const msg of rawContents) {
+        if (!msg.parts[0].text || !msg.parts[0].text.trim()) continue;
+        if (contents.length > 0 && contents[contents.length - 1].role === msg.role) {
+          // Merge consecutive same-role messages
+          contents[contents.length - 1].parts[0].text += "\n\n" + msg.parts[0].text;
+        } else {
+          contents.push({ role: msg.role, parts: [{ text: msg.parts[0].text }] });
+        }
+      }
+
+      // Final safety check: must end with a user message
+      if (!contents.length || contents[contents.length - 1].role !== "user") {
+        return res.status(400).json({ error: "Invalid conversation structure." });
+      }
 
       const result = await ai.models.generateContent({
         model: "gemini-2.0-flash",
