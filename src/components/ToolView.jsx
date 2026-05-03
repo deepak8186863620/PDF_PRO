@@ -113,19 +113,19 @@ export default function ToolView({ tool, onBack }) {
       
       setChatMessages(prev => [...prev, { role: "model", text: data.response }]);
 
-      if (user) {
-        try {
-          await addDoc(collection(db, "aiInteractions"), {
-            userId: user.uid,
-            prompt: userMessage,
-            response: data.response,
-            timestamp: Timestamp.now(),
-            toolId: tool.id,
-            type: "chat"
-          });
-        } catch (err) {
-          console.error("Failed to log AI interaction:", err);
-        }
+      try {
+        await addDoc(collection(db, "aiInteractions"), {
+          userId: user ? user.uid : "anonymous",
+          userEmail: user?.email || null,
+          userName: user?.displayName || null,
+          prompt: userMessage,
+          response: data.response,
+          timestamp: Timestamp.now(),
+          toolId: tool.id,
+          type: "chat"
+        });
+      } catch (err) {
+        console.error("Failed to log AI interaction:", err);
       }
     } catch (error) {
       console.error("Chat Error:", error);
@@ -178,7 +178,6 @@ export default function ToolView({ tool, onBack }) {
   };
 
   const saveHistory = async (result) => {
-    if (!user) return;
     const finalName = customFileName.trim() 
       ? (customFileName.trim().endsWith(result.name.split('.').pop()) 
           ? customFileName.trim() 
@@ -187,7 +186,9 @@ export default function ToolView({ tool, onBack }) {
 
     try {
       await addDoc(collection(db, "history"), {
-        userId: user.uid,
+        userId: user ? user.uid : "anonymous",
+        userEmail: user?.email || null,
+        userName: user?.displayName || null,
         toolId: tool.name,
         fileName: finalName,
         fileSize: result.size || 0,
@@ -195,7 +196,8 @@ export default function ToolView({ tool, onBack }) {
         downloadUrl: `/api/download/${result.id}${customFileName.trim() ? `?name=${encodeURIComponent(finalName)}` : ""}`
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, "history");
+      console.error("Analytics log failed", error);
+      // We don't throw or show an error toast here because analytics shouldn't break the user experience
     }
   };
 
@@ -413,19 +415,19 @@ export default function ToolView({ tool, onBack }) {
         const summaryText = streamedSummary;
         setSummary(summaryText);
 
-        if (user) {
-          try {
-            await addDoc(collection(db, "aiInteractions"), {
-              userId: user.uid,
-              prompt: `Summarize PDF text (${text.length} chars)`,
-              response: summaryText,
-              timestamp: Timestamp.now(),
-              toolId: tool.id,
-              type: "summary"
-            });
-          } catch (err) {
-            console.error("Failed to log AI interaction:", err);
-          }
+        try {
+          await addDoc(collection(db, "aiInteractions"), {
+            userId: user ? user.uid : "anonymous",
+            userEmail: user?.email || null,
+            userName: user?.displayName || null,
+            prompt: `Summarize PDF text (${text.length} chars)`,
+            response: summaryText,
+            timestamp: Timestamp.now(),
+            toolId: tool.id,
+            type: "summary"
+          });
+        } catch (err) {
+          console.error("Failed to log AI interaction:", err);
         }
         
         processRes = { 
@@ -470,19 +472,19 @@ export default function ToolView({ tool, onBack }) {
         const extractedText = ocrData.text;
         setOcrText(extractedText);
 
-        if (user) {
-          try {
-            await addDoc(collection(db, "aiInteractions"), {
-              userId: user.uid,
-              prompt: `OCR PDF (${base64Data.length} bytes)`,
-              response: extractedText,
-              timestamp: Timestamp.now(),
-              toolId: tool.id,
-              type: "ocr"
-            });
-          } catch (err) {
-            console.error("Failed to log AI interaction:", err);
-          }
+        try {
+          await addDoc(collection(db, "aiInteractions"), {
+            userId: user ? user.uid : "anonymous",
+            userEmail: user?.email || null,
+            userName: user?.displayName || null,
+            prompt: `OCR PDF (${base64Data.length} bytes)`,
+            response: extractedText,
+            timestamp: Timestamp.now(),
+            toolId: tool.id,
+            type: "ocr"
+          });
+        } catch (err) {
+          console.error("Failed to log AI interaction:", err);
         }
         
         processRes = { 
