@@ -186,7 +186,8 @@ async function startServer() {
   // Security Headers
   app.use(helmet({
     contentSecurityPolicy: false, // Disabled if frontend needs external scripts/styles (like Firebase)
-    crossOriginEmbedderPolicy: false // Disabled to avoid breaking external resources
+    crossOriginEmbedderPolicy: false, // Disabled to avoid breaking external resources
+    crossOriginOpenerPolicy: false // CRITICAL: Must be false or Firebase Google Auth popup gets blocked (auth/popup-closed-by-user)
   }));
 
   // Middlewares
