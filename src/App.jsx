@@ -255,7 +255,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter text-white mb-6 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
+                    className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter text-white mb-4 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
                   >
                     EVERY TOOL YOU NEED <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-500">
@@ -359,16 +359,17 @@ export default function App() {
                         <button
                           key={cat.id}
                           onClick={() => setActiveCategory(cat.id)}
-                          className={`flex items-center gap-2.5 px-6 py-3.5 rounded-[16px] text-[15px] transition-all duration-200 ${
+                          className={`flex items-center gap-1 sm:gap-2.5 px-3 sm:px-6 py-2 sm:py-3.5 rounded-[12px] sm:rounded-[16px] text-[12px] sm:text-[15px] transition-all duration-200 ${
                             activeCategory === cat.id
                               ? "text-black bg-white shadow-lg font-bold"
                               : "text-[#777777] font-medium hover:text-white"
                           }`}
                         >
-                          <cat.icon size={18} />
-                          {cat.label}
+                          <cat.icon size={14} className="sm:w-[18px] sm:h-[18px]" />
+                          <span className="hidden min-[380px]:inline">{cat.label}</span>
+                          <span className="min-[380px]:hidden">{cat.label.replace(' Tools', '')}</span>
                           <span
-                            className={`text-[12px] font-semibold px-2 py-0.5 rounded-full ml-1 ${
+                            className={`text-[10px] sm:text-[12px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ml-0.5 sm:ml-1 ${
                               activeCategory === cat.id
                                 ? "bg-[#e5e5e5] text-black"
                                 : "bg-[#222222] text-[#777777]"
@@ -411,7 +412,7 @@ export default function App() {
                               </div>
 
                               {/* Tool grid */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 xl:gap-8">
                                 {tools.map((tool, idx) => (
                                   <motion.div
                                     key={tool.id}

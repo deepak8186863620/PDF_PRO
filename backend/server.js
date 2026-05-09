@@ -1239,49 +1239,59 @@ async function startServer() {
       const buf = await readFileFast(filePath);
       if (!isPDF(buf)) return res.status(400).json({ error: "Not a valid PDF." });
 
-      const data = new Uint8Array(buf);
-      const loadingTask = pdfjsLib.getDocument({ 
-        data,
-        disableFontFace: true,
-        useSystemFonts: true
-      });
-      
-      const pdfDocument = await loadingTask.promise;
-      const pageCount = pdfDocument.numPages;
+      logger.info(`Starting Adobe PDF to JPG conversion for ${fileId}`);
 
-      const fileIds = [];
+      const clientId = process.env.ADOBE_CLIENT_ID;
+      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
 
-      for (let i = 1; i <= pageCount; i++) {
-        const page = await pdfDocument.getPage(i);
-        // Scale 2.0 provides higher quality output
-        const viewport = page.getViewport({ scale: 2.0 });
-        
-        const canvas = createCanvas(viewport.width, viewport.height);
-        const ctx = canvas.getContext('2d');
-        
-        // Ensure background is white (PDFs are often transparent)
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        await page.render({
-          canvasContext: ctx,
-          viewport: viewport
-        }).promise;
-        
-        const jpegBuffer = canvas.toBuffer('image/jpeg', { quality: 0.95 });
-        const name = `page-${i}-${uuidv4()}.jpg`;
-        await writeFileFast(path.join(UPLOADS_DIR, name), jpegBuffer);
-        fileIds.push({ id: name, name: `page-${i}.jpg` });
+      if (!clientId || !clientSecret) {
+         throw new Error("Adobe PDF Services credentials are not configured on the server.");
       }
 
-      res.json({ 
-        files: fileIds, 
-        pageCount,
-        note: `${pageCount} page(s) extracted as JPG files locally.`
+      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
+        clientId,
+        clientSecret
       });
+      const clientConfig = new PDFServicesSdk.ClientConfig({
+        timeout: 300000 // 5 minutes
+      });
+      const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
+
+      const inputAsset = await pdfServices.upload({
+        readStream: fs.createReadStream(filePath),
+        mimeType: PDFServicesSdk.MimeType.PDF
+      });
+
+      const params = new PDFServicesSdk.ExportPDFToImagesParams({
+        targetFormat: PDFServicesSdk.ExportPDFToImagesTargetFormat.JPEG,
+        outputType: PDFServicesSdk.ExportPDFToImagesOutputType.ZIP_OF_PAGE_IMAGES
+      });
+      const job = new PDFServicesSdk.ExportPDFToImagesJob({ inputAsset, params });
+
+      const pollingURL = await pdfServices.submit({ job });
+      const response = await pdfServices.getJobResult({
+        pollingURL,
+        resultType: PDFServicesSdk.ExportPDFToImagesResult
+      });
+
+      const resultAsset = response.result.assets[0];
+      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
+      const outName = `adobe-converted-${uuidv4()}.zip`;
+      const outPath = path.join(UPLOADS_DIR, outName);
+      
+      const writeStream = fs.createWriteStream(outPath);
+      streamAsset.readStream.pipe(writeStream);
+      
+      await new Promise((resolve, reject) => {
+        writeStream.on("finish", resolve);
+        writeStream.on("error", reject);
+      });
+
+      res.json({ id: outName, name: "images.zip", note: "Pages extracted as a ZIP file." });
     } catch (err) {
       logger.error("to-jpg: " + err.message);
-      res.status(err.status || 500).json({ error: "Failed to convert PDF to JPG: " + err.message });
+      res.status(err.status || 500).json({ error: "Failed to convert PDF to JPG via Adobe API: " + err.message });
     }
   });
 
