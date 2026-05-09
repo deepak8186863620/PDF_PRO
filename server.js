@@ -8,9 +8,9 @@ import fsPromises from "fs/promises";
 import multer from "multer";
 import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
-import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFRawStream, PDFDict } from "pdf-lib";
 import sharp from "sharp";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, AlignmentType, WidthType } from "docx";
 import { createRequire } from "module";
 import zlib from "zlib";
 import { promisify } from "util";
@@ -18,6 +18,7 @@ import morgan from "morgan";
 import winston from "winston";
 import rateLimit from "express-rate-limit";
 import { pipeline } from "stream/promises";
+import PDFServicesSdk from "@adobe/pdfservices-node-sdk";
 
 const require = createRequire(import.meta.url);
 
@@ -139,6 +140,59 @@ async function loadPDFDoc(filePath, options = {}) {
 
 function requireFile(filePath) {
   if (!fs.existsSync(filePath)) throw Object.assign(new Error("File not found"), { status: 404 });
+}
+
+/**
+ * Extracts all images from a PDF buffer as an array of { data, extension, width, height, pageNum }
+ */
+async function extractPdfImages(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const images = [];
+
+  async function processXObjects(xObjects, pageNum) {
+    if (!xObjects) return;
+    const entries = xObjects.entries();
+    for (const [name, xObject] of entries) {
+      if (xObject instanceof PDFRawStream) {
+        const subtype = xObject.dict.get(PDFName.of("Subtype"));
+        if (subtype === PDFName.of("Image")) {
+          const width = xObject.dict.get(PDFName.of("Width")).numberValue;
+          const height = xObject.dict.get(PDFName.of("Height")).numberValue;
+          const filter = xObject.dict.get(PDFName.of("Filter"));
+          
+          let extension = "png";
+          if (filter === PDFName.of("DCTDecode")) extension = "jpg";
+          else if (filter === PDFName.of("JPXDecode")) extension = "jp2";
+
+          images.push({
+            data: xObject.contents,
+            extension,
+            width,
+            height,
+            pageNum,
+            name: name.asString()
+          });
+        } else if (subtype === PDFName.of("Form")) {
+          const innerResources = xObject.dict.get(PDFName.of("Resources"));
+          if (innerResources instanceof PDFDict) {
+            const innerXObjects = innerResources.get(PDFName.of("XObject"));
+            await processXObjects(innerXObjects, pageNum);
+          }
+        }
+      }
+    }
+  }
+
+  const pages = pdfDoc.getPages();
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const resources = page.node.Resources();
+    if (resources) {
+      const xObjects = resources.get(PDFName.of("XObject"));
+      await processXObjects(xObjects, i + 1);
+    }
+  }
+  return images;
 }
 
 /* ─────────────── MULTER (DISK, MEMORY-EFFICIENT) ─────────────── */
@@ -763,103 +817,59 @@ async function startServer() {
       const buf = await readFileFast(filePath);
       if (!isPDF(buf)) return res.status(400).json({ error: "Not a valid PDF." });
 
-      const pdfData = await parsePDF(buf);
-      const rawText = pdfData.text || "";
+      logger.info(`Starting Adobe PDF to Word conversion for ${fileId}`);
 
-      // ── Smart paragraph & heading detection ──────────────────────
-      const rawLines = rawText.split("\n");
-      const children = [];
+      const clientId = process.env.ADOBE_CLIENT_ID;
+      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
 
-      for (let i = 0; i < rawLines.length; i++) {
-        const line = rawLines[i].trimEnd();
-        const trimmed = line.trim();
-
-        if (!trimmed) {
-          // Blank line = paragraph break
-          children.push(new Paragraph({ children: [] }));
-          continue;
-        }
-
-        // Heuristics for headings: ALL-CAPS, short, isolated from blank lines, not ending with period
-        const isLikelyHeading =
-          trimmed.length >= 2 &&
-          trimmed.length <= 120 &&
-          (trimmed === trimmed.toUpperCase() || /^(Chapter|Section|Part|\d+\.\s)/.test(trimmed)) &&
-          !trimmed.endsWith(".") &&
-          !trimmed.endsWith(",");
-
-        // List items: starting with bullet-like chars or numbers
-        const listMatch = trimmed.match(/^(?:[-•·\u2022\u2023\u25E6\u2043\u2219*]|\d+[.)\s])\s*(.+)/);
-
-        if (isLikelyHeading) {
-          children.push(
-            new Paragraph({
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 240, after: 120 },
-              children: [
-                new TextRun({ text: trimmed, bold: true, size: 28, color: "1a1a2e" }),
-              ],
-            })
-          );
-        } else if (listMatch) {
-          children.push(
-            new Paragraph({
-              bullet: { level: 0 },
-              children: [new TextRun({ text: listMatch[1].trim(), size: 22 })],
-            })
-          );
-        } else {
-          children.push(
-            new Paragraph({
-              children: [new TextRun({ text: trimmed, size: 22 })],
-              spacing: { after: 60 },
-            })
-          );
-        }
+      if (!clientId || !clientSecret) {
+         throw new Error("Adobe PDF Services credentials are not configured on the server.");
       }
 
-      // Add title from PDF metadata if available
-      const titleText = pdfData.info?.Title || "";
-      const finalChildren = titleText
-        ? [
-            new Paragraph({
-              heading: HeadingLevel.HEADING_1,
-              children: [
-                new TextRun({ text: titleText, bold: true, size: 36, color: "000080" }),
-              ],
-              spacing: { after: 240 },
-            }),
-            ...children,
-          ]
-        : children;
+      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
+        clientId,
+        clientSecret
+      });
+      const pdfServices = new PDFServicesSdk.PDFServices({ credentials });
 
-      const doc = new Document({
-        creator: "PDF Master",
-        description: "Converted from PDF using PDF Master",
-        sections: [{
-          properties: {
-            page: {
-              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }, // 1 inch margins
-            },
-          },
-          children: finalChildren.length ? finalChildren : [new Paragraph({ children: [new TextRun({ text: "No extractable text found.", italics: true })] })],
-        }],
+      // 1. Upload Asset
+      const inputAsset = await pdfServices.upload({
+        readStream: fs.createReadStream(filePath),
+        mimeType: PDFServicesSdk.MimeType.PDF
       });
 
-      const buffer = await Packer.toBuffer(doc);
-      const outName = `converted-${uuidv4()}.docx`;
-      await writeFileFast(path.join(UPLOADS_DIR, outName), buffer);
+      // 2. Setup Export to DOCX
+      const params = new PDFServicesSdk.ExportPDFParams({
+        targetFormat: PDFServicesSdk.ExportPDFTargetFormat.DOCX
+      });
+      const job = new PDFServicesSdk.ExportPDFJob({ inputAsset, params });
+
+      // 3. Submit and Poll
+      const pollingURL = await pdfServices.submit({ job });
+      const response = await pdfServices.getJobResult({
+        pollingURL,
+        resultType: PDFServicesSdk.ExportPDFResult
+      });
+
+      // 4. Download Result
+      const resultAsset = response.result.asset;
+      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
+      const outName = `adobe-converted-${uuidv4()}.docx`;
+      const outPath = path.join(UPLOADS_DIR, outName);
+      
+      const writeStream = fs.createWriteStream(outPath);
+      streamAsset.readStream.pipe(writeStream);
+      
+      await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
+
       res.json({ id: outName, name: "converted.docx" });
     } catch (err) {
       logger.error("to-word: " + err.message);
-      // If text extraction fails, try AI OCR as fallback
-      res.status(err.status || 500).json({ 
-        error: err.message.includes("encrypted")
-          ? "PDF is password protected. Please unlock it first."
-          : err.message.includes("No text found") || err.message.includes("text") 
-            ? "Could not extract text from this PDF. It may be a scanned document — try OCR first."
-            : err.message
-      });
+      res.status(500).json({ error: "Failed to convert PDF to Word. " + err.message });
     }
   });
 

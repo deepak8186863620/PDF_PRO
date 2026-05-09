@@ -11,7 +11,9 @@
     "clean": "rmdir /s /q dist"
   },
   "dependencies": {
+    "@adobe/pdfservices-node-sdk": "^4.1.0",
     "@google/genai": "^1.47.0",
+    "@napi-rs/canvas": "^1.0.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "adm-zip": "^0.5.16",
