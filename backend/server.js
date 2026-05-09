@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
 import fsPromises from "fs/promises";
@@ -1672,6 +1671,7 @@ ${context.substring(0, 28000)}
   ══════════════════════════════════════════ */
   if (process.env.NODE_ENV !== "production") {
     try {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true, hmr: { port: 3001 } },
         appType: "spa",
