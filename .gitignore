@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+quickeats-ocr-key.json
+backend/google-cloud-vision-credentials.json

@@ -11,6 +11,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap" rel="stylesheet" />
 
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      // Only config if valid ID is present
+      const gaId = '%VITE_GA_ID%';
+      if (gaId && gaId !== 'G-XXXXXXXXXX') {
+        gtag('config', gaId, {
+          send_page_view: true,
+          cookie_flags: 'SameSite=None;Secure'
+        });
+      }
+    </script>
+
     <title>PDF Master – Professional PDF & Image Tools</title>
   </head>
   <body>

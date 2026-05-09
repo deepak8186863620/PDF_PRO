@@ -1,138 +1,282 @@
-# PDF MASTER - Full-Stack Document & Image Processor
+# 🗂️ PDF & Image Tools
 
-PDF MASTER is a comprehensive, modern, and AI-powered web application for processing PDF documents and images. Inspired by "I Love PDF," it offers a clean, dark-themed UI with a robust backend and real-time processing capabilities.
+> A powerful, all-in-one document and image processing suite built with React, Node.js, and AI — no subscriptions, no sign-ups required.
 
-## 🚀 Tech Stack
-
-- **Frontend:** React.js, Tailwind CSS, Framer Motion (Animations), Lucide React (Icons), Sonner (Toasts).
-- **Backend:** Node.js, Express (Full-stack integration).
-- **AI:** Google Gemini API (Summarization & OCR).
-- **Database & Auth:** Firebase (Authentication & Firestore).
-- **Processing Libraries:**
-  - `pdf-lib`: PDF merging, splitting, and rotating.
-  - `sharp`: High-performance image processing (conversion, compression).
-  - `pdf-parse`: Text extraction from PDF for AI processing.
-  - `multer`: Secure file upload handling.
+![Tech Stack](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white)
+![Gemini AI](https://img.shields.io/badge/Google-Gemini%20AI-4285F4?style=flat-square&logo=google&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## ✨ Core Features
+## What is this?
 
-### 1. PDF Tools
-- **Merge PDF:** Combine multiple PDFs into a single file.
-- **Split PDF:** Extract pages from a PDF into separate documents.
-- **Rotate PDF:** Permanently rotate PDF pages by 90-degree increments.
-- **Compress PDF:** Optimize PDF size for web sharing.
+Honestly, I built this because I was tired of paying for iLovePDF or SmallPDF every month just to merge a few files or compress a PDF. So I made my own — and it ended up being way more capable than I expected.
 
-### 2. Image Tools
-- **Convert Image:** Transform images between JPG, PNG, and WEBP formats.
-- **Compress Image:** Reduce file size without significant quality loss.
-
-### 3. Document Intelligence Tools
-- **Summarize PDF:** Automatically summarize long PDF documents into concise bullet points.
-- **Extract Text (OCR):** Extract text from scanned PDFs and images accurately using Gemini Vision.
-
-### 4. User Dashboard & History
-- **Google Authentication:** Secure login via Firebase Auth.
-- **Activity History:** Automatically track and save all processing operations to Firestore.
-- **Dashboard:** A personalized view for users to manage their history and re-download files.
+This is a **full-stack web application** that lets you do everything you'd normally need a paid tool for: merge, split, compress, rotate, watermark, lock/unlock PDFs, extract text with OCR, convert documents between formats, and even **chat with your PDF** using Gemini AI. All file processing happens on your own server, so your documents never leave your control.
 
 ---
 
-## 🛠️ Implementation Steps
+## ✨ Features
 
-### Step 1: Project Initialization
-- Configured `metadata.json` with app name and permissions.
-- Updated `package.json` to support a full-stack architecture using `tsx` to run the server.
+### 📄 PDF Tools
+| Tool | What it does |
+|---|---|
+| **Merge PDF** | Combine multiple PDFs into one, in any order |
+| **Split PDF** | Extract specific pages or split into individual files |
+| **Compress PDF** | Shrink file size using object stream optimization |
+| **Rotate PDF** | Rotate all or specific pages by any degree |
+| **Watermark PDF** | Add custom text watermarks with adjustable opacity, color, and angle |
+| **Page Numbers** | Auto-number pages at any position (top/bottom, left/center/right) |
+| **Remove Pages** | Delete individual or multiple pages from a document |
+| **Add Pages** | Insert blank or existing pages into a PDF |
+| **Edit PDF** | Overlay text annotations on any page |
+| **Lock PDF** | Password-protect a PDF with custom permissions |
+| **Unlock PDF** | Remove password from a PDF (requires the password) |
+| **Repair PDF** | Recover and re-save corrupted or malformed PDFs |
+| **PDF Metadata** | View title, author, page count, encryption status, and more |
+| **Scan to PDF** | Use your camera to photograph documents and convert to PDF |
 
-### Step 2: Backend Development (`server.ts`)
-- Set up an Express server on port 3000.
-- Integrated `multer` for secure file uploads to a local `uploads/` directory.
-- Implemented core processing endpoints using `pdf-lib` and `sharp`.
-- Added a maintenance task to auto-delete uploaded files after 30 minutes to ensure privacy and storage efficiency.
+### 🔄 Conversion Tools
+| Tool | What it does |
+|---|---|
+| **PDF to Word** | Convert PDFs to editable `.docx` files with layout preservation |
+| **Word to PDF** | Convert `.docx` files to PDF |
+| **PDF to JPG** | Export each PDF page as a high-quality JPG image |
+| **JPG to PDF** | Bundle one or more images into a PDF |
+| **Excel to PDF** | Convert `.xlsx` spreadsheets to PDF |
+| **PowerPoint to PDF** | Convert `.pptx` presentations to PDF |
 
-### Step 3: Document Intelligence Integration
-- Integrated the `@google/genai` SDK.
-- Created endpoints for PDF Summarization and OCR, leveraging the Gemini 3 Flash model for high-speed reasoning and vision capabilities.
+### 🤖 AI-Powered Tools
+| Tool | What it does |
+|---|---|
+| **Chat with PDF** | Ask questions about your document and get instant, context-aware answers |
+| **Summarize PDF** | Auto-generate bullet-point summaries and extract key insights |
+| **Extract Text (OCR)** | Pull text from scanned PDFs or image-based documents using Google Cloud Vision |
 
-### Step 4: Firebase Setup
-- Provisioned a Firebase project with Auth and Firestore.
-- Created `firestore.rules` with strict "Least Privilege" access controls.
-- Implemented a `firebase-blueprint.json` to define the data structure for Users and History.
-
-### Step 5: Frontend Development
-- Built a modern, responsive UI with a dark-themed aesthetic.
-- Created reusable components: `Navbar`, `Footer`, `ToolCard`, `FileUpload`, and `ProcessingOverlay`.
-- Implemented `ToolView` to handle the logic for file selection, upload, processing, and download.
-- Developed the `Dashboard` to fetch and display real-time history from Firestore.
-
----
-
-## 🔌 Integrations & How They Run
-
-### 1. File Processing Flow
-1. User selects a tool and uploads files via `FileUpload.tsx`.
-2. Files are sent to `/api/upload` on the Express server.
-3. The server stores files temporarily and returns unique IDs.
-4. The frontend calls a specific processing endpoint (e.g., `/api/pdf/merge`) with the file IDs.
-5. The server processes the files using `pdf-lib` or `sharp` and returns a new file ID.
-6. The user downloads the result via `/api/download/:id`.
-
-### 2. Document Intelligence (Summarization & OCR)
-- **Summarization:** The server extracts text from the PDF using `pdf-parse` and sends it to Gemini with a summarization prompt.
-- **OCR:** The server converts the PDF/Image to a base64 string and sends it to Gemini Vision for text extraction.
-
-### 3. Firebase Auth & Firestore
-- **Auth:** Handled client-side using `signInWithPopup`.
-- **History:** After a successful process, the frontend calls `addDoc` to save the operation metadata (file name, tool, timestamp) to the `history` collection in Firestore.
+### 🖼️ Image Tools
+| Tool | What it does |
+|---|---|
+| **Compress Image** | Reduce image file size without noticeable quality loss |
+| **Convert Image** | Convert between JPG, PNG, and WebP formats |
 
 ---
 
-## 🚀 How to Run
+## 🏗️ Tech Stack
 
-1. **Environment Variables:**
-   Ensure the following are set in your environment or `.env` file:
-   - `GEMINI_API_KEY`: Your Google AI Studio API key.
-   - `APP_URL`: The base URL of your application.
+**Frontend**
+- React 19 + Vite 6
+- Tailwind CSS v4
+- Framer Motion (animations)
+- React Dropzone (drag-and-drop uploads)
+- Lucide React (icons)
+- Firebase (auth + analytics)
 
-2. **Start Development Server:**
-   ```bash
-   npm run dev
-   ```
-   This starts the Express server which also serves the Vite frontend middleware.
-
-3. **Build for Production:**
-   ```bash
-   npm run build
-   npm start
-   ```
-
----
-
-## 🔮 Future Expansion & Adding Features
-
-### 1. Adding New PDF Tools
-- **Example: Add Watermark**
-  - **Backend:** Update `server.ts` to include a new route `/api/pdf/watermark`. Use `pdf-lib` to draw text or images on each page of the document.
-  - **Frontend:** Add a new tool definition in `constants.tsx` and update `ToolView.tsx` to handle the new tool ID.
-
-### 2. Adding New Image Tools
-- **Example: Resize Image**
-  - **Backend:** Add a route `/api/image/resize`. Use `sharp(filePath).resize(width, height).toFile(...)`.
-  - **Frontend:** Update the UI to allow users to input desired dimensions.
-
-### 3. Premium Tier & Payments
-- Integrate **Razorpay** or **Stripe** by adding a backend route to create orders and a frontend checkout component.
-- Update Firestore rules to check for a `isPremium` flag on the user document before allowing large file uploads or advanced AI features.
-
-### 4. Multi-Language Support
-- Use `react-i18next` to manage translations.
-- Store the user's preferred language in their Firestore profile.
-
-### 5. Admin Panel
-- Create a protected route `/admin` that only users with an `admin` role (defined in Firestore) can access.
-- Use Firestore queries to monitor total uploads, active users, and system health.
+**Backend**
+- Node.js + Express
+- `pdf-lib` — PDF creation and manipulation
+- `pdf-parse` — text extraction
+- `pdfjs-dist` — page rendering
+- `@napi-rs/canvas` — server-side canvas for image export
+- `sharp` — high-performance image processing
+- `docx` — Word document generation
+- `mammoth` — Word document reading
+- `xlsx` — Excel reading
+- `@adobe/pdfservices-node-sdk` — Adobe PDF Services integration
+- `@google-cloud/vision` — Google Cloud Vision OCR
+- `@google/genai` — Gemini AI (chat, summarization)
+- `multer` — file uploads (up to 200 MB)
+- `socket.io` — real-time progress updates
+- `express-rate-limit` — rate limiting
+- `winston` + `morgan` — logging
 
 ---
 
-**PDF MASTER** is designed to be modular. Each tool is isolated in its logic, making it easy to plug in new processing libraries or AI models as your application grows.
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18 or higher
+- A [Gemini API key](https://aistudio.google.com/app/apikey) (for AI features)
+- Optionally: Google Cloud Vision credentials (for OCR on scanned PDFs)
+- Optionally: Adobe PDF Services credentials (for advanced conversions)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/pdf-image-tools.git
+cd pdf-image-tools
+
+# Install dependencies
+npm install
+```
+
+### Configuration
+
+Copy the example environment file and fill in your keys:
+
+```bash
+cp .env.example .env
+```
+
+```env
+# Required for AI features (Chat with PDF, Summarize)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional: Google Analytics tracking
+VITE_GA_ID=G-XXXXXXXXXX
+
+# Optional: Adobe PDF Services (for advanced document conversion)
+PDF_SERVICES_CLIENT_ID=your_adobe_client_id
+PDF_SERVICES_CLIENT_SECRET=your_adobe_client_secret
+
+# Optional: Google Cloud Vision (for OCR on scanned documents)
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
+```
+
+### Run the app
+
+```bash
+npm run dev
+```
+
+That's it. The server starts on `http://localhost:3000` and serves both the API and the React frontend through Vite's dev server.
+
+---
+
+## 📁 Project Structure
+
+```
+├── backend/
+│   ├── server.js        # Main Express server with all API endpoints
+│   └── vision.js        # Google Cloud Vision OCR integration
+├── src/
+│   ├── App.jsx          # Main React app + routing
+│   ├── components/      # UI components (tools, layout, modals)
+│   ├── constants.jsx    # Tool definitions and metadata
+│   ├── firebase.js      # Firebase config and initialization
+│   └── index.css        # Global styles
+├── public/              # Static assets
+├── uploads/             # Temporary file storage (auto-cleaned after 30 min)
+├── .env.example         # Environment variable template
+├── vite.config.js       # Vite + Tailwind config
+└── render.yaml          # Render.com deployment config
+```
+
+---
+
+## 🔌 API Reference
+
+All endpoints accept and return JSON. Files are uploaded first via `/api/upload`, which returns a `fileId` used in subsequent tool calls.
+
+### Upload Files
+```
+POST /api/upload
+Content-Type: multipart/form-data
+
+files: <file(s)>
+→ { files: [{ id, name, size, path }] }
+```
+
+### PDF Operations (examples)
+```
+POST /api/pdf/merge       { fileIds: ["id1", "id2"] }
+POST /api/pdf/split       { fileId, pagesToProcess: "1,3,5" }
+POST /api/pdf/compress    { fileId }
+POST /api/pdf/rotate      { fileId, degrees: 90, pagesToProcess: "1,2" }
+POST /api/pdf/watermark   { fileId, text, opacity, fontSize, color, angle }
+POST /api/pdf/lock        { fileId, password }
+POST /api/pdf/unlock      { fileId, password }
+POST /api/pdf/metadata    { fileId }
+POST /api/pdf/edit        { fileId, edits: [...] }
+POST /api/pdf/repair      { fileId }
+```
+
+### Conversion
+```
+POST /api/pdf/to-word     { fileId }
+POST /api/pdf/to-jpg      { fileId }
+POST /api/pdf/to-images   { fileId }
+POST /api/image/to-pdf    { fileIds: [...] }
+```
+
+### AI Features
+```
+POST /api/ai/chat         { fileId, message, history: [...] }
+POST /api/ai/summarize    { fileId, pagesToProcess }
+POST /api/ai/ocr          { fileId }
+```
+
+### Download
+```
+GET /api/download/:fileId
+```
+
+---
+
+## 🔒 Security Notes
+
+- Files are stored temporarily in `/uploads` and automatically deleted after **30 minutes**
+- Rate limiting is enforced: 60 uploads/min, 30 AI requests/min per IP
+- CORS is open by default in dev — restrict `origin` in `server.js` before deploying to production
+- Never commit your `.env` file — it's in `.gitignore` already
+
+---
+
+## ☁️ Deployment
+
+The project includes a `render.yaml` for one-click deployment on [Render.com](https://render.com).
+
+For other platforms:
+
+```bash
+# Build the frontend
+npm run build
+
+# Start the production server (serves built frontend + API)
+npm start
+```
+
+The Express server serves the Vite-built `dist/` folder in production mode automatically.
+
+---
+
+## 🧠 How the AI features work
+
+**Chat with PDF** — The PDF text is extracted and sent to Gemini along with your question and the conversation history. Responses are streamed back in real time via socket.io, so you don't wait for a full reply before seeing anything.
+
+**Summarize PDF** — Text is extracted (with optional page selection), then sent to Gemini with a structured prompt asking for bullet-point key insights.
+
+**OCR** — Uses Google Cloud Vision's `documentTextDetection` feature, which is significantly better than basic OCR for scanned documents, handwriting, and complex layouts. Falls back gracefully if Vision credentials aren't configured.
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+
+1. Fork the repo
+2. Create your branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push and open a PR
+
+---
+
+## 📄 License
+
+MIT — use it however you like.
+
+---
+
+## 👤 Author
+
+**Deepak Prajapati**
+
+Built as a personal project to replace overpriced document tools with something open, fast, and actually useful.
+
+---
+
+*If this project saved you a few dollars on a PDF subscription, consider giving it a ⭐ — it helps more than you'd think.*

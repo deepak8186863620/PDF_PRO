@@ -17,6 +17,7 @@ import {
 import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, OperationType } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { trackEvent, setAnalyticsUser, clearAnalyticsUser } from "./lib/analytics";
 
 export default function App() {
   const [selectedTool, setSelectedTool] = useState(null);
@@ -35,6 +36,16 @@ export default function App() {
       }
     }
   }, [user, loading, view]);
+
+  // Track Page Views
+  useEffect(() => {
+    const pageName = selectedTool ? `tool_${selectedTool.id}` : view;
+    trackEvent('page_view', {
+      page_title: pageName,
+      page_location: window.location.href,
+      page_path: `/${pageName}`
+    });
+  }, [view, selectedTool]);
 
   const categories = [
     { id: "all", label: "All Tools", icon: LayoutGrid, count: TOOLS.length },
@@ -78,6 +89,10 @@ export default function App() {
     checkHealth();
 
     if (user) {
+      // Identify user in GA using Firebase UID (safe — no PII)
+      const provider = user.providerData?.[0]?.providerId || 'unknown';
+      setAnalyticsUser(user.uid, provider);
+
       const userRef = doc(db, "users", user.uid);
       getDoc(userRef).then(docSnap => {
         if (!docSnap.exists()) {
@@ -98,6 +113,9 @@ export default function App() {
           }, { merge: true });
         }
       }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`));
+    } else {
+      // User logged out — clear GA identity
+      clearAnalyticsUser();
     }
   }, [user]);
 
@@ -216,7 +234,7 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="pt-28 md:pt-36 pb-24 px-4 md:px-6"
+                className="pt-24 sm:pt-28 md:pt-36 pb-24 px-4 sm:px-6"
               >
                 {/* ── Hero Section ── */}
                 <div className="max-w-5xl mx-auto text-center mb-20 md:mb-28">
@@ -237,7 +255,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[0.9] uppercase"
+                    className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter text-white mb-6 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
                   >
                     EVERY TOOL YOU NEED <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-500">
@@ -289,18 +307,18 @@ export default function App() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
+                    className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-16"
                   >
                     <button
                       onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
-                      className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
                     >
                       <Sparkles size={18} />
                       Explore All Tools
                     </button>
                     <button
                       onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
-                      className="flex items-center gap-2 bg-[#161616] border border-[#2a2a2a] text-white hover:bg-[#202020] px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-[#161616] border border-[#2a2a2a] text-white hover:bg-[#202020] px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
                     >
                       See How It Works
                       <ArrowRight size={18} />

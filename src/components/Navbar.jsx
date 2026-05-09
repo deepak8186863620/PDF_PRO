@@ -61,7 +61,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-18">
+        <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
 
           <div className="flex items-center gap-6">
             {/* Logo */}
@@ -69,14 +69,14 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
               onClick={() => { onHomeClick?.(); closeMobileMenu(); }}
               className="flex items-center gap-3 group focus-ring rounded-xl"
             >
-              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-white/5 group-hover:shadow-white/10 transition-shadow duration-300">
+              <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-white/5 group-hover:shadow-white/10 transition-shadow duration-300">
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 via-zinc-400 to-zinc-500" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <FileText size={18} className="text-black drop-shadow-sm" />
+                  <FileText size={22} className="text-black drop-shadow-sm" />
                 </div>
               </div>
-              <div className="flex flex-col items-start leading-none mr-2">
-                <span className="text-base font-800 text-white tracking-tight">PDF Master</span>
+              <div className="flex flex-col items-start leading-none mr-1 sm:mr-2">
+                <span className="text-lg sm:text-xl font-800 text-white tracking-tight truncate">PDF Master</span>
               </div>
             </button>
 
@@ -85,12 +85,12 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
             </button>
 
             {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-8">
               {navLinks.map(link => (
                 <button
                   key={link.label}
                   onClick={link.action}
-                  className="flex items-center gap-1.5 text-[13px] font-700 text-white hover:text-red-500 transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-[15px] font-700 text-white hover:text-red-500 transition-colors whitespace-nowrap"
                 >
                   {link.label}
                 </button>
@@ -98,7 +98,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
               {user && (
                 <button
                   onClick={onDashboardClick}
-                  className="flex items-center gap-1.5 text-[13px] font-700 text-white hover:text-red-500 transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-[15px] font-700 text-white hover:text-red-500 transition-colors whitespace-nowrap"
                 >
                   DASHBOARD
                 </button>
@@ -134,13 +134,13 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                 <>
                   <button
                     onClick={handleLogin}
-                    className="text-[14px] font-700 text-white hover:text-zinc-300 transition-colors"
+                    className="text-base font-700 text-white hover:text-zinc-300 transition-colors"
                   >
                     Login
                   </button>
                   <button
                     onClick={handleLogin}
-                    className="bg-[#E5322D] hover:bg-[#D42B27] text-white px-5 py-2.5 rounded-lg text-[14px] font-700 transition-all shadow-lg"
+                    className="bg-[#E5322D] hover:bg-[#D42B27] text-white px-6 py-3 rounded-xl text-base font-700 transition-all shadow-lg"
                   >
                     Sign up
                   </button>

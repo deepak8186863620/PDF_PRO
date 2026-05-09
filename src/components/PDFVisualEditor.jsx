@@ -184,16 +184,23 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
 
       const ocrResults = await res.json();
       
-      // Get PDF page dimensions to map back to PDF points
+      // Get canvas pixel dimensions to normalize coordinates
+      const canvasEl = canvasRefs.current[pageNum];
+      const canvasW = canvasEl.width;   // canvas pixel width
+      const canvasH = canvasEl.height;  // canvas pixel height
+
+      // Get PDF page dimensions in points
       const page = await pdfRef.current.getPage(pageNum);
-      const { width: pdfWidth, height: pdfHeight } = page.getSize();
+      const viewport = page.getViewport({ scale: 1 });
+      const { width: pdfWidth, height: pdfHeight } = viewport;
       
       const newItems = ocrResults.map((item, idx) => {
-        // Map 0-1000 to PDF points (PDF origin is bottom-left)
-        const px = (item.x / 1000) * pdfWidth;
-        const py = pdfHeight - ((item.y / 1000) * pdfHeight) - ((item.height / 1000) * pdfHeight);
-        const pw = (item.width / 1000) * pdfWidth;
-        const ph = (item.height / 1000) * pdfHeight;
+        // Vision API returns pixel coords on the rendered canvas image.
+        // Normalize to [0..1] then scale to PDF points (origin bottom-left).
+        const px = (item.x / canvasW) * pdfWidth;
+        const py = pdfHeight - ((item.y / canvasH) * pdfHeight) - ((item.height / canvasH) * pdfHeight);
+        const pw = (item.width / canvasW) * pdfWidth;
+        const ph = (item.height / canvasH) * pdfHeight;
 
         return {
           id: `ocr-${pageNum}-${idx}`,
@@ -217,7 +224,7 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
       toast.success(`OCR completed for page ${pageNum}. ${newItems.length} text blocks found.`);
     } catch (error) {
       console.error("OCR error:", error);
-      toast.error("Failed to perform OCR on this page.");
+      toast.error(`OCR Error: ${error.message}`);
     } finally {
       setIsOCRing(prev => ({ ...prev, [pageNum]: false }));
     }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash } from "lucide-react";
 import FileUpload from "./FileUpload";
@@ -10,6 +11,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { auth, db, collection, addDoc, Timestamp, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { trackToolUsage, trackError } from "../lib/analytics";
 
 export default function ToolView({ tool, onBack }) {
   const [files, setFiles] = useState([]);
@@ -246,6 +248,7 @@ export default function ToolView({ tool, onBack }) {
       "word-to-pdf": "Converting Word to PDF...",
     };
     setProcessingStatus(statusMap[tool.id] || "Processing your files...");
+    trackToolUsage(tool.id, 'process_start', { file_count: files.length });
 
     try {
       const formData = new FormData();
@@ -365,7 +368,7 @@ export default function ToolView({ tool, onBack }) {
         // Use streaming for real-time summary output
         let streamedSummary = "";
         // Set up the result file first so summary view is shown
-        setResultFile({ id: uploadedFiles[0].id, name: "summary.txt", size: 0 });
+        setResultFile({ id: uploadedFiles[0].id, name: "summary.pdf", size: 0 });
         setSummary(""); // clear any old summary first
         setProgress(100);
         // Hide processing overlay so summary streams in live
@@ -432,12 +435,12 @@ export default function ToolView({ tool, onBack }) {
           ok: true, 
           json: async () => ({ 
             summary: summaryText, 
-            id: uploadedFiles[0].id, 
-            name: "summary.txt" 
+            id: "ai-result", 
+            name: "summary.pdf" 
           }) 
         };
         // Early return: streaming already set isProcessing=false and summary state
-        saveHistory({ id: uploadedFiles[0].id, name: "summary.txt", size: 0 });
+        saveHistory({ id: uploadedFiles[0].id, name: "summary.pdf", size: 0 });
         toast.success("Summary generated!");
         return;
       } else if (tool.id === "ocr-pdf") {
@@ -489,8 +492,8 @@ export default function ToolView({ tool, onBack }) {
           ok: true, 
           json: async () => ({ 
             text: extractedText, 
-            id: uploadedFiles[0].id, 
-            name: "extracted-text.txt" 
+            id: "ai-result", 
+            name: "extracted-text.pdf" 
           }) 
         };
       } else if (tool.id === "pdf-to-word") {
@@ -586,20 +589,28 @@ export default function ToolView({ tool, onBack }) {
           setResultFile(result);
           saveHistory(result);
         }
+        trackToolUsage(tool.id, 'process_success');
         toast.success("File processed successfully!");
       }, 100);
 
     } catch (error) {
       console.error(error);
       setIsProcessing(false);
+      trackError('ToolView', error.message);
       toast.error(error.message || "An error occurred during processing.");
     }
   };
 
-  const downloadResult = () => {
-    if (summary && tool.id === "summarize-pdf") {
-      toast.promise(
-        async () => {
+  const downloadResult = async () => {
+    try {
+      const isAI = tool.id === "ocr-pdf" || tool.id === "summarize-pdf";
+      const content = summary || ocrText;
+
+      if (isAI && content) {
+        setIsProcessing(true);
+        setProcessingStatus("Generating PDF...");
+        
+        try {
           const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
           const pdfDoc = await PDFDocument.create();
           const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -611,83 +622,54 @@ export default function ToolView({ tool, onBack }) {
           const fontSize = 11;
           const lineHeight = fontSize * 1.6;
 
-          const lines = summary.split("\n");
-
-          const wrapText = (text, currentFont, size, maxWidth) => {
-            const words = text.split(" ");
-            let wrapped = [];
-            let currentLine = words[0] || "";
-            
-            for (let i = 1; i < words.length; i++) {
-              const word = words[i];
-              const w = currentFont.widthOfTextAtSize(currentLine + " " + word, size);
-              if (w < maxWidth) {
-                currentLine += " " + word;
-              } else {
-                wrapped.push(currentLine);
-                currentLine = word;
-              }
-            }
-            if (currentLine) wrapped.push(currentLine);
-            return wrapped;
-          };
+          const lines = content.split("\n");
 
           // Draw title
-          const title = `Summary: ${files[0]?.name || "Document"}`;
-          page.drawText(title, {
-            x: margin,
-            y: y,
-            size: 16,
-            font: boldFont,
-            color: rgb(0.1, 0.1, 0.3),
+          const titleType = tool.id === "summarize-pdf" ? "Summary" : "Extracted Text";
+          page.drawText(`${titleType}: ${files[0]?.name || "Document"}`, {
+            x: margin, y: y, size: 16, font: boldFont, color: rgb(0.1, 0.1, 0.3),
           });
           y -= lineHeight * 2;
 
-          for (let i = 0; i < lines.length; i++) {
-            let line = lines[i].trim();
-            if (!line) {
-              y -= lineHeight * 0.5;
-              continue;
-            }
+          for (let line of lines) {
+            line = line.trim();
+            if (!line) { y -= lineHeight * 0.5; continue; }
 
             let currentFont = font;
             let currentSize = fontSize;
             let indent = 0;
 
-            // Basic markdown heuristics
             if (line.startsWith("#")) {
-              currentFont = boldFont;
-              currentSize = fontSize + 3;
+              currentFont = boldFont; currentSize = fontSize + 3;
               line = line.replace(/^#+\s*/, "");
-              y -= lineHeight * 0.5; // Extra space before headings
+              y -= lineHeight * 0.5; 
             } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
               indent = 15;
-            } else if (line.match(/^\d+\.\s/)) {
-              indent = 15;
             }
 
-            // Strip bold/italic markdown chars for clean PDF
-            let isBoldLine = false;
             if (line.includes("**")) {
-              if (line.trim().startsWith("**")) isBoldLine = true;
               line = line.replace(/\*\*/g, "");
+              currentFont = boldFont;
             }
-            if (isBoldLine) currentFont = boldFont;
 
-            const wrappedLines = wrapText(line, currentFont, currentSize, width - margin * 2 - indent);
-            
-            for (const wLine of wrappedLines) {
-              if (y < margin) {
-                page = pdfDoc.addPage();
-                y = height - margin;
+            // Simple wrap
+            const words = line.split(" ");
+            let currentLineText = "";
+            for (const word of words) {
+              const testLine = currentLineText ? `${currentLineText} ${word}` : word;
+              const w = currentFont.widthOfTextAtSize(testLine, currentSize);
+              if (w < width - margin * 2 - indent) {
+                currentLineText = testLine;
+              } else {
+                if (y < margin + lineHeight) { page = pdfDoc.addPage(); y = height - margin; }
+                page.drawText(currentLineText, { x: margin + indent, y: y, size: currentSize, font: currentFont });
+                y -= lineHeight;
+                currentLineText = word;
               }
-              page.drawText(wLine, {
-                x: margin + indent,
-                y: y,
-                size: currentSize,
-                font: currentFont,
-                color: rgb(0.15, 0.15, 0.15),
-              });
+            }
+            if (currentLineText) {
+              if (y < margin + lineHeight) { page = pdfDoc.addPage(); y = height - margin; }
+              page.drawText(currentLineText, { x: margin + indent, y: y, size: currentSize, font: currentFont });
               y -= lineHeight;
             }
           }
@@ -697,39 +679,61 @@ export default function ToolView({ tool, onBack }) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = `Summary_${files[0]?.name ? files[0].name.replace(".pdf", "") : "Document"}.pdf`;
+          link.download = `${tool.id === "summarize-pdf" ? "Summary" : "OCR"}_${files[0]?.name || "Result"}.pdf`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
-        },
-        {
-          loading: "Generating PDF...",
-          success: "Summary downloaded as PDF!",
-          error: "Failed to generate PDF"
+          toast.success("PDF Downloaded!");
+        } finally {
+          setIsProcessing(false);
         }
-      );
-      return;
-    }
+        return;
+      }
 
-    if (summary || ocrText) {
-      const blob = new Blob([summary || ocrText || ""], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      if (summary || ocrText) {
+        // Fallback: if we somehow reach here, force PDF generation instead of TXT
+        setIsProcessing(true);
+        setProcessingStatus("Generating PDF...");
+        try {
+          const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+          const pdfDoc = await PDFDocument.create();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+          let page = pdfDoc.addPage();
+          const { width, height } = page.getSize();
+          const margin = 50;
+          let y = height - margin;
+          
+          const title = tool.id === "summarize-pdf" ? "Summary" : "Extracted Text";
+          page.drawText(title, { x: margin, y, size: 16, font: boldFont });
+          y -= 30;
 
-      link.href = url;
-      const finalName = customFileName.trim() 
-        ? (customFileName.trim().toLowerCase().endsWith(".txt") ? customFileName.trim() : `${customFileName.trim()}.txt`)
-        : "extracted-text.txt";
-      link.setAttribute("download", finalName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      return;
-    }
+          const lines = (summary || ocrText).split("\n");
+          for (let line of lines) {
+            if (!line.trim()) { y -= 15; continue; }
+            if (y < margin + 20) { page = pdfDoc.addPage(); y = height - margin; }
+            page.drawText(line.substring(0, 100), { x: margin, y, size: 11, font });
+            y -= 18;
+          }
 
-    if (resultFile) {
+          const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "result.pdf";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } finally {
+          setIsProcessing(false);
+        }
+        return;
+      }
+
+    if (resultFile && resultFile.id !== "ai-result") {
       const ext = resultFile.name.split('.').pop() || "";
       const finalName = customFileName.trim() 
         ? (customFileName.trim().toLowerCase().endsWith(`.${ext.toLowerCase()}`) 
@@ -744,6 +748,11 @@ export default function ToolView({ tool, onBack }) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      trackToolUsage(tool.id, 'download_result');
+    }
+    } catch (err) {
+      console.error("Download Error:", err);
+      toast.error("Download failed: " + err.message);
     }
   };
 
@@ -1127,7 +1136,7 @@ export default function ToolView({ tool, onBack }) {
                     </div>
                   </div>
 
-                  {showVisualEditor && uploadedFileId && (
+                  {showVisualEditor && uploadedFileId && createPortal(
                     <PDFVisualEditor 
                       file={files[0]} 
                       onClose={() => setShowVisualEditor(false)}
@@ -1159,7 +1168,8 @@ export default function ToolView({ tool, onBack }) {
                           setIsProcessing(false);
                         }
                       }}
-                    />
+                    />,
+                    document.body
                   )}
                 </div>
               )}
@@ -1372,7 +1382,7 @@ export default function ToolView({ tool, onBack }) {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={downloadResult} className="btn-primary flex-1 justify-center py-3">
                   <Download size={16} />
-                  Download {customFileName.trim() || "Text"}
+                  Download PDF
                 </button>
                 <button
                   onClick={() => { setSummary(null); setOcrText(null); setResultFile(null); setFiles([]); }}
@@ -1394,14 +1404,44 @@ export default function ToolView({ tool, onBack }) {
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <FileCheck size={28} className="text-white" />
               </div>
-              <h2 className="text-2xl font-700 text-white mb-2">Your file is ready!</h2>
-              <p className="text-zinc-500 text-sm mb-8">Processing complete. Download your file below.</p>
+              <h2 className="text-2xl font-700 text-white mb-2">Your file{resultFile?.files ? "s are" : " is"} ready!</h2>
+              <p className="text-zinc-500 text-sm mb-8">Processing complete. Download your file{resultFile?.files ? "s" : ""} below.</p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button onClick={downloadResult} className="btn-primary px-8 py-3">
-                  <Download size={16} />
-                  Download {customFileName.trim() || "File"}
-                </button>
+              {resultFile?.files && resultFile.files.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                  {resultFile.files.map((f, i) => {
+                    const isImage = f.name.toLowerCase().match(/\.(jpg|jpeg|png|webp)$/);
+                    return (
+                      <div key={f.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col items-center gap-3">
+                        {isImage ? (
+                          <img src={`/api/download/${f.id}`} alt={f.name} className="w-full h-auto rounded-lg shadow-md max-h-32 object-contain bg-white" />
+                        ) : (
+                          <div className="w-full h-24 rounded-lg shadow-md bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                            <FileCheck size={32} className="text-red-400" />
+                          </div>
+                        )}
+                        <p className="text-[10px] text-zinc-400 truncate w-full text-center font-bold tracking-widest uppercase">{f.name}</p>
+                        <a 
+                          href={`/api/download/${f.id}?name=${encodeURIComponent(f.name)}`} 
+                          download 
+                          className="btn-primary w-full py-2 text-xs flex justify-center items-center font-bold"
+                        >
+                          <Download size={14} className="mr-1"/> Download
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+                  <button onClick={downloadResult} className="btn-primary px-8 py-3">
+                    <Download size={16} />
+                    Download {customFileName.trim() || "File"}
+                  </button>
+                </div>
+              )}
+
+              <div className="flex justify-center">
                 <button
                   onClick={() => { setResultFile(null); setFiles([]); }}
                   className="btn-secondary px-8 py-3"
