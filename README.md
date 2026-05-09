@@ -4,7 +4,8 @@
 
 ![Tech Stack](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white)
-![Gemini AI](https://img.shields.io/badge/Google-Gemini%20AI-4285F4?style=flat-square&logo=google&logoColor=white)
+![Gemini AI](https://img.shields.io/badge/Google-Gemini%202.5%20Flash-4285F4?style=flat-square&logo=google&logoColor=white)
+![Adobe PDF](https://img.shields.io/badge/Adobe-PDF%20Services-FF0000?style=flat-square&logo=adobe&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
@@ -53,14 +54,25 @@ This is a **full-stack web application** that lets you do everything you'd norma
 | Tool | What it does |
 |---|---|
 | **Chat with PDF** | Ask questions about your document and get instant, context-aware answers |
-| **Summarize PDF** | Auto-generate bullet-point summaries and extract key insights |
-| **Extract Text (OCR)** | Pull text from scanned PDFs or image-based documents using Google Cloud Vision |
+| **Summarize PDF** | Auto-generate professional **PDF summaries** with key insights (Headings & Bullets only) using **Gemini 2.5 Flash** |
+| **Extract Text (OCR)** | Pull text from scanned PDFs or images using **Google Cloud Vision** with professional PDF output |
 
 ### 🖼️ Image Tools
 | Tool | What it does |
 |---|---|
 | **Compress Image** | Reduce image file size without noticeable quality loss |
 | **Convert Image** | Convert between JPG, PNG, and WebP formats |
+| **Remove Background** | (Coming Soon) AI-powered background removal |
+
+---
+
+## 📱 Mobile-First Experience
+
+This app isn't just a desktop tool. We've optimized the entire experience for modern smartphones:
+- **Side-by-Side Tools**: Two-column layout on mobile for faster navigation.
+- **Back-Gesture Support**: Full History API integration means your phone's back-swipe gesture cleanly exits tools without reloading the site.
+- **Responsive Typography**: Dynamic font scaling ensures readability on everything from an iPhone SE to a 4K monitor.
+- **Full-Width Interactions**: Buttons and inputs are sized for comfortable thumb-tap interactions.
 
 ---
 
@@ -84,9 +96,10 @@ This is a **full-stack web application** that lets you do everything you'd norma
 - `docx` — Word document generation
 - `mammoth` — Word document reading
 - `xlsx` — Excel reading
-- `@adobe/pdfservices-node-sdk` — Adobe PDF Services integration
-- `@google-cloud/vision` — Google Cloud Vision OCR
-- `@google/genai` — Gemini AI (chat, summarization)
+- `@adobe/pdfservices-node-sdk` — Adobe PDF Services for high-fidelity DOCX/JPG conversion
+- `@google-cloud/vision` — Google Cloud Vision OCR for document intelligence
+- `@google/genai` — **Gemini 2.5 Flash** (ultra-fast chat and summarization)
+- `pdf-lib` — PDF creation, merging, and professional PDF report generation
 - `multer` — file uploads (up to 200 MB)
 - `socket.io` — real-time progress updates
 - `express-rate-limit` — rate limiting
