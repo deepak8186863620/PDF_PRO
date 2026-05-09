@@ -1264,7 +1264,7 @@ async function startServer() {
 
       const params = new PDFServicesSdk.ExportPDFToImagesParams({
         targetFormat: PDFServicesSdk.ExportPDFToImagesTargetFormat.JPEG,
-        outputType: PDFServicesSdk.ExportPDFToImagesOutputType.ZIP_OF_PAGE_IMAGES
+        outputType: PDFServicesSdk.ExportPDFToImagesOutputType.LIST_OF_PAGE_IMAGES
       });
       const job = new PDFServicesSdk.ExportPDFToImagesJob({ inputAsset, params });
 
@@ -1274,21 +1274,30 @@ async function startServer() {
         resultType: PDFServicesSdk.ExportPDFToImagesResult
       });
 
-      const resultAsset = response.result.assets[0];
-      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+      const fileIds = [];
+      const assets = response.result.assets || [];
 
-      const outName = `adobe-converted-${uuidv4()}.zip`;
-      const outPath = path.join(UPLOADS_DIR, outName);
-      
-      const writeStream = fs.createWriteStream(outPath);
-      streamAsset.readStream.pipe(writeStream);
-      
-      await new Promise((resolve, reject) => {
-        writeStream.on("finish", resolve);
-        writeStream.on("error", reject);
+      for (let i = 0; i < assets.length; i++) {
+        const streamAsset = await pdfServices.getContent({ asset: assets[i] });
+        const outName = `adobe-page-${i + 1}-${uuidv4()}.jpg`;
+        const outPath = path.join(UPLOADS_DIR, outName);
+        
+        const writeStream = fs.createWriteStream(outPath);
+        streamAsset.readStream.pipe(writeStream);
+        
+        await new Promise((resolve, reject) => {
+          writeStream.on("finish", resolve);
+          writeStream.on("error", reject);
+        });
+        
+        fileIds.push({ id: outName, name: `page-${i + 1}.jpg` });
+      }
+
+      res.json({ 
+        files: fileIds, 
+        pageCount: assets.length,
+        note: `${assets.length} page(s) extracted as JPG files via Adobe API.`
       });
-
-      res.json({ id: outName, name: "images.zip", note: "Pages extracted as a ZIP file." });
     } catch (err) {
       logger.error("to-jpg: " + err.message);
       res.status(err.status || 500).json({ error: "Failed to convert PDF to JPG via Adobe API: " + err.message });
@@ -1592,7 +1601,16 @@ ${context.substring(0, 28000)}
 
     const stat = await fsPromises.stat(filePath);
     const fileName = customName || fileId;
+    
+    // Set appropriate MIME type to prevent browser from renaming .docx to .zip
+    let mimeType = "application/octet-stream";
+    const ext = path.extname(fileName).toLowerCase();
+    if (ext === ".pdf") mimeType = "application/pdf";
+    else if (ext === ".docx") mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+    else if (ext === ".png") mimeType = "image/png";
 
+    res.setHeader("Content-Type", mimeType);
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Length", stat.size);
     res.setHeader("Cache-Control", "no-cache");

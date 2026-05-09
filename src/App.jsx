@@ -47,6 +47,30 @@ export default function App() {
     });
   }, [view, selectedTool]);
 
+  // Intercept mobile back gesture / hardware back button
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (selectedTool) {
+        setSelectedTool(null);
+      } else if (view !== "home" && view !== "login") {
+        setView("home");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedTool, view]);
+
+  const handleOpenTool = (tool) => {
+    window.history.pushState({ tool: tool.id }, "", "");
+    setSelectedTool(tool);
+  };
+
+  const handleCloseTool = () => {
+    // If the user clicks the UI back button, we manually trigger a history back 
+    // to keep the history stack clean, which will trigger the popstate listener.
+    window.history.back();
+  };
+
   const categories = [
     { id: "all", label: "All Tools", icon: LayoutGrid, count: TOOLS.length },
     { id: "pdf", label: "PDF Tools", icon: FileText, count: TOOLS.filter(t => t.category === "pdf").length },
@@ -119,11 +143,37 @@ export default function App() {
     }
   }, [user]);
 
-  const handleHomeClick = () => { setSelectedTool(null); setView("home"); };
-  const handleDashboardClick = () => { setSelectedTool(null); setView("dashboard"); };
-  const handleAboutClick = () => { setSelectedTool(null); setView("about"); };
-  const handleFeedbackClick = () => { setSelectedTool(null); setView("feedback"); };
-  const handleLoginClick = () => { setSelectedTool(null); setView("login"); };
+  const handleHomeClick = () => {
+    if (view !== "home" || selectedTool) {
+      window.history.pushState({ view: "home" }, "", "");
+    }
+    setSelectedTool(null);
+    setView("home");
+  };
+
+  const handleDashboardClick = () => {
+    window.history.pushState({ view: "dashboard" }, "", "");
+    setSelectedTool(null);
+    setView("dashboard");
+  };
+
+  const handleAboutClick = () => {
+    window.history.pushState({ view: "about" }, "", "");
+    setSelectedTool(null);
+    setView("about");
+  };
+
+  const handleFeedbackClick = () => {
+    window.history.pushState({ view: "feedback" }, "", "");
+    setSelectedTool(null);
+    setView("feedback");
+  };
+
+  const handleLoginClick = () => {
+    window.history.pushState({ view: "login" }, "", "");
+    setSelectedTool(null);
+    setView("login");
+  };
 
   return (
     <ErrorBoundary>
@@ -191,7 +241,7 @@ export default function App() {
                   onSelectTool={(toolId) => {
                     const tool = TOOLS.find(t => t.id === toolId);
                     if (tool) {
-                      setSelectedTool(tool);
+                      handleOpenTool(tool);
                       setView("home");
                     }
                   }} 
@@ -422,7 +472,7 @@ export default function App() {
                                   >
                                     <ToolCard
                                       {...tool}
-                                      onClick={() => setSelectedTool(tool)}
+                                      onClick={() => handleOpenTool(tool)}
                                     />
                                   </motion.div>
                                 ))}
@@ -467,7 +517,7 @@ export default function App() {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.25 }}
               >
-                <ToolView tool={selectedTool} onBack={() => setSelectedTool(null)} />
+                <ToolView tool={selectedTool} onBack={handleCloseTool} />
               </motion.div>
             )}
           </AnimatePresence>
