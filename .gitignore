@@ -9,3 +9,12 @@ coverage/
 
 quickeats-ocr-key.json
 backend/google-cloud-vision-credentials.json
+scratch/
+test_ocr.mjs
+temp/
+uploads/
+*.pdf
+*.docx
+*.jpg
+*.png
+

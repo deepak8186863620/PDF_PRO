@@ -193,72 +193,82 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
       {/* Mobile menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden mx-4 mb-3 glass-card rounded-2xl overflow-hidden"
-          >
-            <div className="p-4 space-y-1">
-              {navLinks.map(link => (
-                <button
-                  key={link.label}
-                  onClick={() => { link.action?.(); closeMobileMenu(); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-700 text-white hover:bg-white/6 transition-all"
-                >
-                  {link.label}
-                </button>
-              ))}
-              {user && (
-                <button
-                  onClick={() => { onDashboardClick?.(); closeMobileMenu(); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-500 text-zinc-300 hover:text-white hover:bg-white/6 transition-all"
-                >
-                  <LayoutDashboard size={16} className="text-white" />
-                  Dashboard
-                </button>
-              )}
-            </div>
-
-            <div className="px-4 pb-4 pt-1 border-t border-white/5">
-              {!user ? (
-                <button
-                  onClick={() => { handleLogin(); closeMobileMenu(); }}
-                  className="btn-primary w-full justify-center py-3 text-sm"
-                >
-                  <LogIn size={16} />
-                  Sign in with Google
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 px-3 py-2">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full ring-2 ring-white/20" />
-                    ) : (
-                      <img
-                        src={deepakImg}
-                        alt="Profile"
-                        className="w-10 h-10 rounded-full ring-2 ring-white/20 object-cover"
-                      />
-                    )}
-                    <div>
-
-                      <p className="text-zinc-500 text-xs">{user.email}</p>
-                    </div>
-
-                  </div>
+          <>
+            {/* Backdrop overlay to prevent content overlap readability issues */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeMobileMenu}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[-1] h-screen"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden mx-4 mb-3 bg-[#111111] border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black"
+            >
+              <div className="p-4 space-y-1">
+                {navLinks.map(link => (
                   <button
-                    onClick={() => { handleLogout(); closeMobileMenu(); }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-600 text-red-400 bg-red-500/8 border border-red-500/15 hover:bg-red-500/15 transition-all"
+                    key={link.label}
+                    onClick={() => { link.action?.(); closeMobileMenu(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-700 text-white hover:bg-white/6 transition-all"
                   >
-                    <LogOut size={14} />
-                    Sign out
+                    {link.label}
                   </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
+                ))}
+                {user && (
+                  <button
+                    onClick={() => { onDashboardClick?.(); closeMobileMenu(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-500 text-zinc-300 hover:text-white hover:bg-white/6 transition-all"
+                  >
+                    <LayoutDashboard size={16} className="text-white" />
+                    Dashboard
+                  </button>
+                )}
+              </div>
+
+              <div className="px-4 pb-4 pt-1 border-t border-white/5">
+                {!user ? (
+                  <button
+                    onClick={() => { handleLogin(); closeMobileMenu(); }}
+                    className="btn-primary w-full justify-center py-3 text-sm"
+                  >
+                    <LogIn size={16} />
+                    Sign in with Google
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full ring-2 ring-white/20" />
+                      ) : (
+                        <img
+                          src={deepakImg}
+                          alt="Profile"
+                          className="w-10 h-10 rounded-full ring-2 ring-white/20 object-cover"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-600 truncate">{user.displayName || "User"}</p>
+                        <p className="text-zinc-500 text-xs truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { handleLogout(); closeMobileMenu(); }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-600 text-red-400 bg-red-500/8 border border-red-500/15 hover:bg-red-500/15 transition-all"
+                    >
+                      <LogOut size={14} />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </nav>

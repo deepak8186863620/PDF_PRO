@@ -568,10 +568,12 @@ async function startServer() {
         ? pagesToProcess.split(",").map((p) => parseInt(p.trim())).filter((p) => !isNaN(p))
         : [];
 
+      const rotationAngle = parseInt(deg) || 90;
+
       pages.forEach((page, i) => {
         if (!selectedPages.length || selectedPages.includes(i + 1)) {
-          const cur = page.getRotation().angle;
-          page.setRotation({ angle: (cur + (deg || 90)) % 360 });
+          const cur = page.getRotation().angle || 0;
+          page.setRotation(degrees((cur + rotationAngle) % 360));
         }
       });
 
