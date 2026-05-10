@@ -744,7 +744,7 @@ export default function ToolView({ tool, onBack }) {
                   <PDFDocumentPreview file={files[0]} />
                 )}
 
-              {tool.id === "scan-to-pdf" && (
+              {(tool.id === "scan-to-pdf" || tool.id === "ocr-pdf") && (
                 <div className="mt-8 flex justify-center">
                   <button
                     onClick={() => setShowCamera(true)}
