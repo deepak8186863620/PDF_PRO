@@ -756,7 +756,7 @@ export default function ToolView({ tool, onBack }) {
                 </div>
               )}
 
-              {tool.id === "ocr-pdf" && files.length > 0 && (
+              {tool.id === "ocr-pdf" && files.length > 0 && files[0].name?.toLowerCase().endsWith(".pdf") && (
                 <div className="space-y-6">
                   <PDFPreviewBar 
                     file={files[0]} 
@@ -770,7 +770,7 @@ export default function ToolView({ tool, onBack }) {
                 </div>
               )}
 
-              {tool.id === "summarize-pdf" && files.length > 0 && (
+              {tool.id === "summarize-pdf" && files.length > 0 && files[0].name?.toLowerCase().endsWith(".pdf") && (
                 <div className="space-y-6">
                   <PDFPreviewBar 
                     file={files[0]} 

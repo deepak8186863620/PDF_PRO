@@ -418,7 +418,11 @@ async function startServer() {
       requireFile(filePath);
 
       let buf = await readFileFast(filePath);
-      if (!isPDF(buf)) return res.status(400).json({ error: "Not a valid PDF." });
+      
+      // If it's not a PDF (e.g. an image), just return its base64 directly
+      if (!isPDF(buf)) {
+        return res.json({ base64: buf.toString("base64") });
+      }
 
       if (pagesToProcess) {
         const doc = await PDFDocument.load(buf);
