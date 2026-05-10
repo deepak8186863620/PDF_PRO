@@ -17,6 +17,7 @@ import {
 import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, OperationType } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { trackEvent, setAnalyticsUser, clearAnalyticsUser } from "./lib/analytics";
 
 export default function App() {
@@ -524,6 +525,7 @@ export default function App() {
         </main>
 
         {view !== "login" && <Footer onAboutClick={handleAboutClick} />}
+        <PWAInstallPrompt />
       </div>
     </ErrorBoundary>
   );

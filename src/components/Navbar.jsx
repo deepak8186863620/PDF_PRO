@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileText, LogIn, LogOut, LayoutDashboard, Menu, X, Grip } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { FileText, LogIn, LogOut, LayoutDashboard, Menu, X, Grip, Download, Share, PlusSquare } from "lucide-react";
 import { auth, googleProvider, signInWithPopup, signOut, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
@@ -10,6 +10,15 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+  const guideRef = useRef(null);
+
+  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  const isStandalone =
+    ('standalone' in window.navigator && window.navigator.standalone) ||
+    window.matchMedia('(display-mode: standalone)').matches;
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -31,16 +40,43 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleLogin = () => {
-    onLoginClick?.();
+  useEffect(() => {
+    if (isStandalone) { setIsInstalled(true); return; }
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setIsInstalled(true); setDeferredPrompt(null); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // Close iOS guide on outside click
+  useEffect(() => {
+    if (!showIosGuide) return;
+    const handleOutside = (e) => {
+      if (guideRef.current && !guideRef.current.contains(e.target)) {
+        setShowIosGuide(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showIosGuide]);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      // Native one-click install (Chrome, Edge, Android)
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setIsInstalled(true);
+      setDeferredPrompt(null);
+    } else {
+      // iOS or browser without native prompt — show how-to guide
+      setShowIosGuide(prev => !prev);
+    }
   };
 
+  const handleLogin = () => { onLoginClick?.(); };
+
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    try { await signOut(auth); } catch (error) { console.error("Logout failed:", error); }
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -109,6 +145,70 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
           {/* Right side */}
           <div className="flex items-center gap-3">
 
+            {/* Install App button — always visible unless already installed */}
+            {!isInstalled && (
+              <div className="relative" ref={guideRef}>
+                <button
+                  id="navbar-install-btn"
+                  onClick={handleInstallClick}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-700 text-white bg-white/10 border border-white/15 hover:bg-white/20 active:scale-95 transition-all duration-150"
+                >
+                  <Download size={13} />
+                  Install App
+                </button>
+
+                {/* Guide popover — only shown on iOS or when no native prompt */}
+                <AnimatePresence>
+                  {showIosGuide && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 top-11 w-72 bg-[#1a1a1a] border border-white/15 rounded-2xl shadow-2xl p-4 z-50"
+                    >
+                      {isIos ? (
+                        <>
+                          <p className="text-white text-xs font-700 mb-3">Add to Home Screen (iOS)</p>
+                          <div className="space-y-2.5 text-xs text-zinc-300">
+                            <p className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">1</span>
+                              Tap the <Share size={13} className="text-white mx-1 flex-shrink-0" /> Share button in Safari.
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">2</span>
+                              Tap <PlusSquare size={13} className="text-white mx-1 flex-shrink-0" /> <strong>Add to Home Screen</strong>.
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">3</span>
+                              Tap <strong>Add</strong> to confirm.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-white text-xs font-700 mb-2">Install PDF Master</p>
+                          <p className="text-zinc-400 text-xs mb-3">Your browser will show an install dialog shortly. If not:</p>
+                          <div className="space-y-2 text-xs text-zinc-300">
+                            <p className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">1</span>
+                              Click the <strong className="text-white mx-1">⋮</strong> menu in Chrome/Edge.
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">2</span>
+                              Click <strong className="text-white">"Install PDF Master…"</strong>
+                            </p>
+                          </div>
+                          <p className="text-zinc-500 text-[10px] mt-3">💡 For instant install, use Chrome or Edge.</p>
+                        </>
+                      )}
+                      <div className="absolute -top-2 right-5 w-3 h-3 bg-[#1a1a1a] border-t border-l border-white/15 rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {/* Server status pill */}
             <div
               className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-600 uppercase tracking-widest transition-all duration-300 ${
@@ -164,8 +264,6 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                         className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover"
                       />
                     )}
-
-
                   </button>
                   <button
                     onClick={handleLogout}
@@ -194,7 +292,6 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Backdrop overlay to prevent content overlap readability issues */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
