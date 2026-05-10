@@ -3,9 +3,23 @@ services:
     name: pdf-pro
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: node server.js
+    startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20
       - key: GEMINI_API_KEY
+        sync: false
+      - key: HF_API_KEY
+        sync: false
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
+      - key: ADOBE_CLIENT_ID
+        sync: false
+      - key: ADOBE_CLIENT_SECRET
+        sync: false
+      - key: VITE_GA_ID
+        sync: false
+      - key: VITE_API_URL
         sync: false
