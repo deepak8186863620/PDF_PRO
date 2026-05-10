@@ -11,24 +11,49 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap" rel="stylesheet" />
 
-
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
+    <!-- Google Analytics GA4
+         IMPORTANT:
+         - send_page_view is FALSE because this is a React SPA.
+           Page views are tracked manually in App.jsx via trackPageView().
+         - We do NOT call gtag('config') again after this point.
+           Calling it again resets client_id causing all users to appear as 1.
+         - The GA_ID is injected at build-time by Vite via vite.config.js htmlPlugin.
+    -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      // Only config if valid ID is present
-      const gaId = '%VITE_GA_ID%';
-      if (gaId && gaId !== 'G-XXXXXXXXXX') {
+      // Inline GA ID set by Vite build — fallback to empty string if missing
+      window.__GA_ID__ = '__VITE_GA_ID__';
+    </script>
+    <script>
+      (function() {
+        var gaId = window.__GA_ID__;
+        if (!gaId || gaId === '__VITE_GA_ID__' || gaId === 'G-XXXXXXXXXX') {
+          console.warn('[Analytics] No valid GA_ID found. Analytics disabled.');
+          return;
+        }
+
+        // Load gtag.js
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+        document.head.appendChild(script);
+
+        // Init gtag
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        window.gtag = gtag;
+        gtag('js', new Date());
+
+        // Configure GA4 — send_page_view: false because we track manually in React
         gtag('config', gaId, {
-          send_page_view: true,
-          cookie_flags: 'SameSite=None;Secure'
+          send_page_view: false,
+          cookie_flags: 'SameSite=None;Secure',
         });
-      }
+
+        console.log('[Analytics] GA4 initialized with id:', gaId);
+      })();
     </script>
 
-    <title>PDF Master – Professional PDF & Image Tools</title>
+    <title>PDF Master – Professional PDF &amp; Image Tools</title>
   </head>
   <body>
     <div id="root"></div>

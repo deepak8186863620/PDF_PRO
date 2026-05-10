@@ -10,10 +10,19 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const gaId = env.VITE_GA_ID || '';
+
   return {
     plugins: [
       react(), 
       tailwindcss(),
+      // Inject real GA ID into index.html at build time
+      {
+        name: 'html-ga-inject',
+        transformIndexHtml(html) {
+          return html.replace('__VITE_GA_ID__', gaId);
+        },
+      },
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],

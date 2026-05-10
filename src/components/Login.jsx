@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle2, Shield, Zap, Globe, FileText, Lock, Brain, ChevronDown, Sparkles } from "lucide-react";
 import { auth, googleProvider, signInWithPopup, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
+import { setAnalyticsUser, trackLogin, trackSignUp } from "../lib/analytics";
 import loginPromo from "../assets/login-promo.png";
 
 import Footer from "./Footer";
@@ -12,6 +13,7 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick }) {
       const u = result.user;
       const userDocRef = doc(db, "users", u.uid);
       const userDoc = await getDoc(userDocRef);
+      const isNewUser = !userDoc.exists();
       
       const userData = {
         uid: u.uid,
@@ -21,12 +23,24 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick }) {
         lastLogin: Timestamp.now(),
       };
       
-      if (!userDoc.exists()) {
+      if (isNewUser) {
         userData.createdAt = Timestamp.now();
         userData.role = "user";
       }
       
       await setDoc(userDocRef, userData, { merge: true });
+
+      // ── Analytics ──────────────────────────────────────────
+      // 1. Attach Firebase UID to GA4 so this user is tracked separately
+      setAnalyticsUser(u.uid, 'google.com');
+      // 2. Fire the appropriate GA4 reserved event
+      if (isNewUser) {
+        trackSignUp(u.uid, 'Google');
+      } else {
+        trackLogin(u.uid, 'Google');
+      }
+      // ───────────────────────────────────────────────────────
+
       if (onLoginSuccess) onLoginSuccess();
     } catch (error) {
       console.error("Login failed:", error);

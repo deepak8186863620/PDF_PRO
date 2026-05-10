@@ -18,7 +18,7 @@ import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, Operati
 import { useAuthState } from "react-firebase-hooks/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
-import { trackEvent, setAnalyticsUser, clearAnalyticsUser } from "./lib/analytics";
+import { trackPageView, setAnalyticsUser, clearAnalyticsUser } from "./lib/analytics";
 
 export default function App() {
   const [selectedTool, setSelectedTool] = useState(null);
@@ -38,14 +38,10 @@ export default function App() {
     }
   }, [user, loading, view]);
 
-  // Track Page Views
+  // Track SPA page views on every route/view change
   useEffect(() => {
     const pageName = selectedTool ? `tool_${selectedTool.id}` : view;
-    trackEvent('page_view', {
-      page_title: pageName,
-      page_location: window.location.href,
-      page_path: `/${pageName}`
-    });
+    trackPageView(pageName);
   }, [view, selectedTool]);
 
   // Intercept mobile back gesture / hardware back button
