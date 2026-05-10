@@ -1516,15 +1516,14 @@ ${text.substring(0, 45000)}`;
         // Inject the document as the first turn so the model has full context
         rawContents.push({
           role: "user",
-          parts: [{ text: `You are an intelligent document assistant. Answer questions ONLY based on the document content below.
-- Be specific, accurate, and cite relevant parts of the document.
-- If the answer is not in the document, say "This information is not in the document."
-- Keep answers concise and well-formatted (use markdown: bold, bullets, headers).
+          parts: [{ text: `You are an intelligent document assistant helping me understand my uploaded document. 
+Here is the text of the document:
 
-DOCUMENT CONTENT (${context.length} characters):
 ---
 ${context.substring(0, 28000)}
----` }]
+---
+
+Please answer my questions about this document. If I ask a general question (like "hello" or "what is this tool"), you can answer normally. If I ask a specific question about the document and the information is missing, let me know it's not in the document.` }]
         });
         rawContents.push({
           role: "model",
