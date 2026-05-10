@@ -607,129 +607,17 @@ export default function ToolView({ tool, onBack }) {
       const content = summary || ocrText;
 
       if (isAI && content) {
-        setIsProcessing(true);
-        setProcessingStatus("Generating PDF...");
-        
-        try {
-          const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
-          const pdfDoc = await PDFDocument.create();
-          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-          let page = pdfDoc.addPage();
-          const { width, height } = page.getSize();
-          const margin = 50;
-          let y = height - margin;
-          const fontSize = 11;
-          const lineHeight = fontSize * 1.6;
-
-          const lines = content.split("\n");
-
-          // Draw title
-          const titleType = tool.id === "summarize-pdf" ? "Summary" : "Extracted Text";
-          page.drawText(`${titleType}: ${files[0]?.name || "Document"}`, {
-            x: margin, y: y, size: 16, font: boldFont, color: rgb(0.1, 0.1, 0.3),
-          });
-          y -= lineHeight * 2;
-
-          for (let line of lines) {
-            line = line.trim();
-            if (!line) { y -= lineHeight * 0.5; continue; }
-
-            let currentFont = font;
-            let currentSize = fontSize;
-            let indent = 0;
-
-            if (line.startsWith("#")) {
-              currentFont = boldFont; currentSize = fontSize + 3;
-              line = line.replace(/^#+\s*/, "");
-              y -= lineHeight * 0.5; 
-            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
-              indent = 15;
-            }
-
-            if (line.includes("**")) {
-              line = line.replace(/\*\*/g, "");
-              currentFont = boldFont;
-            }
-
-            // Simple wrap
-            const words = line.split(" ");
-            let currentLineText = "";
-            for (const word of words) {
-              const testLine = currentLineText ? `${currentLineText} ${word}` : word;
-              const w = currentFont.widthOfTextAtSize(testLine, currentSize);
-              if (w < width - margin * 2 - indent) {
-                currentLineText = testLine;
-              } else {
-                if (y < margin + lineHeight) { page = pdfDoc.addPage(); y = height - margin; }
-                page.drawText(currentLineText, { x: margin + indent, y: y, size: currentSize, font: currentFont });
-                y -= lineHeight;
-                currentLineText = word;
-              }
-            }
-            if (currentLineText) {
-              if (y < margin + lineHeight) { page = pdfDoc.addPage(); y = height - margin; }
-              page.drawText(currentLineText, { x: margin + indent, y: y, size: currentSize, font: currentFont });
-              y -= lineHeight;
-            }
-          }
-
-          const pdfBytes = await pdfDoc.save();
-          const blob = new Blob([pdfBytes], { type: "application/pdf" });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `${tool.id === "summarize-pdf" ? "Summary" : "OCR"}_${files[0]?.name || "Result"}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-          toast.success("PDF Downloaded!");
-        } finally {
-          setIsProcessing(false);
-        }
-        return;
-      }
-
-      if (summary || ocrText) {
-        // Fallback: if we somehow reach here, force PDF generation instead of TXT
-        setIsProcessing(true);
-        setProcessingStatus("Generating PDF...");
-        try {
-          const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
-          const pdfDoc = await PDFDocument.create();
-          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-          let page = pdfDoc.addPage();
-          const { width, height } = page.getSize();
-          const margin = 50;
-          let y = height - margin;
-          
-          const title = tool.id === "summarize-pdf" ? "Summary" : "Extracted Text";
-          page.drawText(title, { x: margin, y, size: 16, font: boldFont });
-          y -= 30;
-
-          const lines = (summary || ocrText).split("\n");
-          for (let line of lines) {
-            if (!line.trim()) { y -= 15; continue; }
-            if (y < margin + 20) { page = pdfDoc.addPage(); y = height - margin; }
-            page.drawText(line.substring(0, 100), { x: margin, y, size: 11, font });
-            y -= 18;
-          }
-
-          const pdfBytes = await pdfDoc.save();
-          const blob = new Blob([pdfBytes], { type: "application/pdf" });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "result.pdf";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        } finally {
-          setIsProcessing(false);
-        }
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        const defaultName = tool.id === "summarize-pdf" ? "Summary" : "OCR_Result";
+        link.download = `${defaultName}_${files[0]?.name || "Document"}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success("Text downloaded successfully!");
         return;
       }
 

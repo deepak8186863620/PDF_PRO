@@ -1475,7 +1475,7 @@ ${text.substring(0, 45000)}`;
       const { base64, mimeType } = req.body;
       if (!base64) return res.status(400).json({ error: "No data provided." });
 
-      const text = await performOCR(base64);
+      const text = await performOCR(base64, mimeType);
       res.json({ text });
     } catch (err) {
       logger.error("vision/ocr: " + err.message);
@@ -1491,7 +1491,7 @@ ${text.substring(0, 45000)}`;
       const { base64, mimeType } = req.body;
       if (!base64) return res.status(400).json({ error: "No data provided." });
 
-      const parsed = await performStructuredOCR(base64);
+      const parsed = await performStructuredOCR(base64, mimeType);
       res.json(parsed);
     } catch (err) {
       logger.error("vision/ocr-structured: " + err.message);
