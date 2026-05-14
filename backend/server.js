@@ -974,56 +974,69 @@ async function startServer() {
       const filePath = path.join(UPLOADS_DIR, fileId);
       requireFile(filePath);
 
-      const buf = await readFileFast(filePath);
-      const result = await mammoth.extractRawText({ buffer: buf });
-      const text = result.value || "";
+      logger.info(`Starting Adobe Word to PDF conversion for ${fileId}`);
 
-      const pdfDoc = await PDFDocument.create();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const fontSize = 11;
-      const margin = 50;
-      const lineHeight = fontSize * 1.4;
+      const clientId = process.env.ADOBE_CLIENT_ID;
+      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
 
-      let page = pdfDoc.addPage();
-      const { width, height } = page.getSize();
-      let y = height - margin;
-
-      const wrapLine = (line) => {
-        const words = line.split(" ");
-        const wrapped = [];
-        let current = "";
-        for (const word of words) {
-          const test = current ? `${current} ${word}` : word;
-          if (font.widthOfTextAtSize(test, fontSize) > width - margin * 2) {
-            if (current) wrapped.push(current);
-            current = word;
-          } else {
-            current = test;
-          }
-        }
-        if (current) wrapped.push(current);
-        return wrapped;
-      };
-
-      for (const rawLine of text.split("\n")) {
-        const wrappedLines = rawLine.trim() ? wrapLine(rawLine) : [""];
-        for (const wl of wrappedLines) {
-          if (y < margin + lineHeight) {
-            page = pdfDoc.addPage();
-            y = height - margin;
-          }
-          if (wl) page.drawText(wl, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
-          y -= lineHeight;
-        }
+      if (!clientId || !clientSecret) {
+         throw new Error("Adobe PDF Services credentials are not configured on the server.");
       }
 
-      const bytes = await pdfDoc.save();
+      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
+        clientId,
+        clientSecret
+      });
+      const clientConfig = new PDFServicesSdk.ClientConfig({
+        timeout: 300000 // 5 minutes
+      });
+      const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
+
+      const extension = path.extname(fileId).toLowerCase();
+      let mimeType = PDFServicesSdk.MimeType.DOCX;
+      if (extension === ".doc") {
+        mimeType = PDFServicesSdk.MimeType.DOC;
+      } else if (extension === ".rtf") {
+        mimeType = PDFServicesSdk.MimeType.RTF;
+      } else if (extension === ".txt") {
+        mimeType = PDFServicesSdk.MimeType.TXT;
+      }
+
+      // 1. Upload Asset
+      const inputAsset = await pdfServices.upload({
+        readStream: fs.createReadStream(filePath),
+        mimeType
+      });
+
+      // 2. Setup Create PDF Job
+      const job = new PDFServicesSdk.CreatePDFJob({ inputAsset });
+
+      // 3. Submit and Poll
+      const pollingURL = await pdfServices.submit({ job });
+      const response = await pdfServices.getJobResult({
+        pollingURL,
+        resultType: PDFServicesSdk.CreatePDFResult
+      });
+
+      // 4. Download Result
+      const resultAsset = response.result.asset;
+      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
       const outName = `converted-${uuidv4()}.pdf`;
-      await writeFileFast(path.join(UPLOADS_DIR, outName), bytes);
+      const outPath = path.join(UPLOADS_DIR, outName);
+      
+      const writeStream = fs.createWriteStream(outPath);
+      streamAsset.readStream.pipe(writeStream);
+      
+      await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
+
       res.json({ id: outName, name: "converted.pdf" });
     } catch (err) {
       logger.error("word-to-pdf: " + err.message);
-      res.status(err.status || 500).json({ error: err.message });
+      res.status(500).json({ error: "Failed to convert Word to PDF. " + err.message });
     }
   });
 
