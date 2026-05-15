@@ -93,10 +93,24 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
 
       if (!context) return;
 
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+      const outputScale = window.devicePixelRatio || 1;
 
-      const renderTask = page.render({ canvasContext: context, viewport });
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = Math.floor(viewport.width) + "px";
+      canvas.style.height =  Math.floor(viewport.height) + "px";
+
+      const transform = outputScale !== 1
+        ? [outputScale, 0, 0, outputScale, 0, 0]
+        : null;
+
+      const renderContext = {
+        canvasContext: context,
+        transform: transform,
+        viewport: viewport
+      };
+
+      const renderTask = page.render(renderContext);
       renderTasks.current[pageNum] = renderTask;
 
       await renderTask.promise;
@@ -496,16 +510,17 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
                 
                 return (
                   <div key={pageNum} className="relative group">
+
                     {/* Page Actions Overlay */}
-                    <div className="absolute -left-12 top-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-9 h-9 bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
-                        {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin" /> : <ScanText size={16} />}
+                    <div className="absolute top-2 right-2 md:-left-12 md:right-auto md:top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+                      <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
+                        {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin w-4 h-4" /> : <ScanText size={16} className="w-4 h-4 md:w-4 md:h-4" />}
                       </button>
-                      <button onClick={() => rotatePage(pageNum)} className="w-9 h-9 bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
-                        <RotateCw size={16} />
+                      <button onClick={() => rotatePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
+                        <RotateCw size={16} className="w-4 h-4 md:w-4 md:h-4" />
                       </button>
-                      <button onClick={() => deletePage(pageNum)} className="w-9 h-9 bg-zinc-900 border border-white/10 text-zinc-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
-                        <Trash2 size={16} />
+                      <button onClick={() => deletePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-red-500 rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
+                        <Trash2 size={16} className="w-4 h-4 md:w-4 md:h-4" />
                       </button>
                     </div>
 

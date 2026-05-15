@@ -535,23 +535,71 @@ async function startServer() {
   ══════════════════════════════════════════ */
   app.post("/api/pdf/compress", async (req, res) => {
     try {
-      const { fileId } = req.body;
+      const { fileId, compressionLevel = "MEDIUM" } = req.body;
       const filePath = path.join(UPLOADS_DIR, fileId);
       requireFile(filePath);
 
-      const srcPdf = await loadPDFDoc(filePath);
-      const bytes = await srcPdf.save({ useObjectStreams: true, addDefaultPage: false });
+      logger.info(`Starting Adobe PDF compression for ${fileId} with level ${compressionLevel}`);
+
+      const clientId = process.env.ADOBE_CLIENT_ID;
+      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
+
+      if (!clientId || !clientSecret) {
+         throw new Error("Adobe PDF Services credentials are not configured on the server.");
+      }
+
+      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
+        clientId,
+        clientSecret
+      });
+      const clientConfig = new PDFServicesSdk.ClientConfig({
+        timeout: 300000 // 5 minutes
+      });
+      const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
+
+      const inputAsset = await pdfServices.upload({
+        readStream: fs.createReadStream(filePath),
+        mimeType: PDFServicesSdk.MimeType.PDF
+      });
+
+      const params = new PDFServicesSdk.CompressPDFParams({
+        compressionLevel: PDFServicesSdk.CompressionLevel[compressionLevel] || PDFServicesSdk.CompressionLevel.MEDIUM
+      });
+
+      const job = new PDFServicesSdk.CompressPDFJob({ inputAsset, params });
+
+      const pollingURL = await pdfServices.submit({ job });
+      const response = await pdfServices.getJobResult({
+        pollingURL,
+        resultType: PDFServicesSdk.CompressPDFResult
+      });
+
+      const resultAsset = response.result.asset;
+      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
       const outName = `compressed-${uuidv4()}.pdf`;
-      await writeFileFast(path.join(UPLOADS_DIR, outName), bytes);
+      const outPath = path.join(UPLOADS_DIR, outName);
+      
+      const writeStream = fs.createWriteStream(outPath);
+      streamAsset.readStream.pipe(writeStream);
+      
+      await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
 
       const originalSize = (await fsPromises.stat(filePath)).size;
-      const newSize = bytes.length;
-      const reduction = (((originalSize - newSize) / originalSize) * 100).toFixed(1);
+      const newSize = (await fsPromises.stat(outPath)).size;
+      
+      let reduction = 0;
+      if (originalSize > 0) {
+        reduction = (((originalSize - newSize) / originalSize) * 100).toFixed(1);
+      }
 
       res.json({ id: outName, name: "compressed.pdf", originalSize, newSize, reduction: `${reduction}%` });
     } catch (err) {
       logger.error("compress: " + err.message);
-      res.status(err.status || 500).json({ error: err.message });
+      res.status(500).json({ error: "Failed to compress PDF. " + err.message });
     }
   });
 

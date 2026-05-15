@@ -33,6 +33,7 @@ export default function ToolView({ tool, onBack }) {
   const [showVisualEditor, setShowVisualEditor] = useState(false);
   const [uploadedFileId, setUploadedFileId] = useState(null);
   const [edits, setEdits] = useState([]);
+  const [compressionLevel, setCompressionLevel] = useState("MEDIUM");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [pdfContext, setPdfContext] = useState(null);
@@ -285,7 +286,7 @@ export default function ToolView({ tool, onBack }) {
         processRes = await fetch("/api/pdf/compress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: uploadedFiles[0].id }),
+          body: JSON.stringify({ fileId: uploadedFiles[0].id, compressionLevel }),
         });
       } else if (tool.id === "rotate-pdf") {
         processRes = await fetch("/api/pdf/rotate", {
@@ -1079,6 +1080,29 @@ export default function ToolView({ tool, onBack }) {
                         }`}
                       >
                         {fmt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tool.id === "compress-pdf" && files.length > 0 && (
+                <div className="mt-8 max-w-md mx-auto bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl">
+                  <label className="block text-xs font-black text-zinc-500 uppercase tracking-[0.2em] mb-3 text-center">
+                    Compression Level
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {["HIGH", "MEDIUM", "LOW"].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setCompressionLevel(level)}
+                        className={`py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-[10px] ${
+                          compressionLevel === level 
+                            ? "bg-white text-black shadow-lg scale-105" 
+                            : "bg-black text-zinc-400 border border-zinc-800 hover:border-zinc-600"
+                        }`}
+                      >
+                        {level === "HIGH" ? "Small Size" : level === "MEDIUM" ? "Balanced" : "High Quality"}
                       </button>
                     ))}
                   </div>

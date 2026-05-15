@@ -4,7 +4,7 @@ import {
   Download, Clock, FileText, Sparkles, Settings, 
   ArrowRight, Files, Image as ImageIcon, Home, 
   Folder, Search, MoreVertical, Plus, Edit, 
-  Minimize2, Scissors, Shield, FileSearch
+  Minimize2, Scissors, Shield, FileSearch, Share2
 } from "lucide-react";
 import { auth, db, collection, query, where, orderBy, onSnapshot, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -55,14 +55,35 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
     { id: "compress-pdf", name: "Compress", icon: <Minimize2 size={26} strokeWidth={2} />, gradient: "from-emerald-400 via-teal-500 to-cyan-500", iconColor: "text-emerald-400", iconBg: "bg-emerald-500/10" },
     { id: "merge-pdf", name: "Merge", icon: <Files size={26} strokeWidth={2} />, gradient: "from-orange-500 via-rose-500 to-pink-500", iconColor: "text-orange-400", iconBg: "bg-orange-500/10" },
     { id: "split-pdf", name: "Split", icon: <Scissors size={26} strokeWidth={2} />, gradient: "from-blue-500 via-indigo-500 to-purple-500", iconColor: "text-blue-400", iconBg: "bg-blue-500/10" },
-    { id: "pdf-to-image", name: "To Image", icon: <ImageIcon size={26} strokeWidth={2} />, gradient: "from-fuchsia-500 via-purple-600 to-indigo-500", iconColor: "text-fuchsia-400", iconBg: "bg-fuchsia-500/10" },
-    { id: "ocr", name: "OCR", icon: <FileSearch size={26} strokeWidth={2} />, gradient: "from-cyan-400 via-blue-500 to-indigo-500", iconColor: "text-cyan-400", iconBg: "bg-cyan-500/10" },
+    { id: "pdf-to-jpg", name: "To Image", icon: <ImageIcon size={26} strokeWidth={2} />, gradient: "from-fuchsia-500 via-purple-600 to-indigo-500", iconColor: "text-fuchsia-400", iconBg: "bg-fuchsia-500/10" },
+    { id: "ocr-pdf", name: "OCR", icon: <FileSearch size={26} strokeWidth={2} />, gradient: "from-cyan-400 via-blue-500 to-indigo-500", iconColor: "text-cyan-400", iconBg: "bg-cyan-500/10" },
   ];
 
   const filteredHistory = history.filter(item => 
     item.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.toolId.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleShare = async (item) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: item.fileName,
+          text: `Check out this document: ${item.fileName}`,
+          url: item.downloadUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing document:', error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(item.downloadUrl);
+        alert('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen pt-20 flex bg-[#0f0f11]">
@@ -115,7 +136,7 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
                </div>
                <span className="text-sm font-500">Convert a PDF</span>
              </button>
-             <button onClick={() => onSelectTool('protect-pdf')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white transition-all group">
+             <button onClick={() => onSelectTool('lock-pdf')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white transition-all group">
                <div className="w-6 h-6 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-colors">
                   <Shield size={14} strokeWidth={2.5} />
                </div>
@@ -241,13 +262,20 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
                         <span className="text-zinc-400 text-sm capitalize">{item.toolId.replace('-', ' ')}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2">
                            <button
                              onClick={() => { const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l); }}
                              className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                              title="Download"
                            >
                              <Download size={16} />
+                           </button>
+                           <button
+                             onClick={() => handleShare(item)}
+                             className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                             title="Share"
+                           >
+                             <Share2 size={16} />
                            </button>
                            <button className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                              <MoreVertical size={16} />
@@ -283,12 +311,22 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => { const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l); }}
-                      className="p-2 text-zinc-400 hover:text-white bg-white/5 rounded-lg shrink-0"
-                    >
-                      <Download size={16} />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleShare(item)}
+                        className="p-2 text-zinc-400 hover:text-white bg-white/5 rounded-lg"
+                        title="Share"
+                      >
+                        <Share2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => { const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l); }}
+                        className="p-2 text-zinc-400 hover:text-white bg-white/5 rounded-lg"
+                        title="Download"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

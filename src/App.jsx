@@ -47,18 +47,28 @@ export default function App() {
   // Intercept mobile back gesture / hardware back button
   useEffect(() => {
     const handlePopState = (e) => {
-      if (selectedTool) {
+      const state = e.state;
+      if (state) {
+        if (state.tool) {
+          const tool = TOOLS.find(t => t.id === state.tool);
+          setSelectedTool(tool || null);
+        } else {
+          setSelectedTool(null);
+        }
+        if (state.view) {
+          setView(state.view);
+        }
+      } else {
         setSelectedTool(null);
-      } else if (view !== "home" && view !== "login") {
-        setView("home");
+        setView(user ? "home" : "login");
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [selectedTool, view]);
+  }, [user]);
 
   const handleOpenTool = (tool) => {
-    window.history.pushState({ tool: tool.id }, "", "");
+    window.history.pushState({ view, tool: tool.id }, "", "");
     setSelectedTool(tool);
   };
 
@@ -149,25 +159,33 @@ export default function App() {
   };
 
   const handleDashboardClick = () => {
-    window.history.pushState({ view: "dashboard" }, "", "");
+    if (view !== "dashboard" || selectedTool) {
+      window.history.pushState({ view: "dashboard" }, "", "");
+    }
     setSelectedTool(null);
     setView("dashboard");
   };
 
   const handleAboutClick = () => {
-    window.history.pushState({ view: "about" }, "", "");
+    if (view !== "about" || selectedTool) {
+      window.history.pushState({ view: "about" }, "", "");
+    }
     setSelectedTool(null);
     setView("about");
   };
 
   const handleFeedbackClick = () => {
-    window.history.pushState({ view: "feedback" }, "", "");
+    if (view !== "feedback" || selectedTool) {
+      window.history.pushState({ view: "feedback" }, "", "");
+    }
     setSelectedTool(null);
     setView("feedback");
   };
 
   const handleLoginClick = () => {
-    window.history.pushState({ view: "login" }, "", "");
+    if (view !== "login" || selectedTool) {
+      window.history.pushState({ view: "login" }, "", "");
+    }
     setSelectedTool(null);
     setView("login");
   };
@@ -225,7 +243,17 @@ export default function App() {
 
         <main className="relative z-10">
           <AnimatePresence mode="wait">
-            {view === "dashboard" ? (
+            {selectedTool ? (
+              <motion.div
+                key="tool-view"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.25 }}
+              >
+                <ToolView tool={selectedTool} onBack={handleCloseTool} />
+              </motion.div>
+            ) : view === "dashboard" ? (
               <motion.div
                 key="dashboard"
                 initial={{ opacity: 0, y: 16 }}
@@ -239,7 +267,6 @@ export default function App() {
                     const tool = TOOLS.find(t => t.id === toolId);
                     if (tool) {
                       handleOpenTool(tool);
-                      setView("home");
                     }
                   }} 
                 />
@@ -274,7 +301,7 @@ export default function App() {
               >
                 <Login onBack={handleHomeClick} onLoginSuccess={handleDashboardClick} onAboutClick={handleAboutClick} />
               </motion.div>
-            ) : !selectedTool ? (
+            ) : (
               <motion.div
                 key="home"
                 initial={{ opacity: 0 }}
@@ -505,16 +532,6 @@ export default function App() {
                     )}
                   </AnimatePresence>
                 </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="tool-view"
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.25 }}
-              >
-                <ToolView tool={selectedTool} onBack={handleCloseTool} />
               </motion.div>
             )}
           </AnimatePresence>
