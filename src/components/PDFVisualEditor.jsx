@@ -428,7 +428,7 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <div className="flex-1 overflow-hidden flex flex-col-reverse md:flex-row">
         {/* Sidebar */}
         <div className="w-full md:w-80 bg-zinc-950 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col gap-8">
           <div>
@@ -510,21 +510,20 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
                 
                 return (
                   <div key={pageNum} className="relative group">
-
-                    {/* Page Actions Overlay */}
-                    <div className="absolute top-2 right-2 md:-left-12 md:right-auto md:top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
-                      <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
-                        {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin w-4 h-4" /> : <ScanText size={16} className="w-4 h-4 md:w-4 md:h-4" />}
-                      </button>
-                      <button onClick={() => rotatePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
-                        <RotateCw size={16} className="w-4 h-4 md:w-4 md:h-4" />
-                      </button>
-                      <button onClick={() => deletePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-red-500 rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
-                        <Trash2 size={16} className="w-4 h-4 md:w-4 md:h-4" />
-                      </button>
-                    </div>
-
                     <div className="relative shadow-2xl bg-white">
+                      {/* Page Actions Overlay */}
+                      <div className="absolute top-2 right-2 md:-left-12 md:right-auto md:top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-50">
+                        <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/90 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
+                          {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin w-4 h-4" /> : <ScanText size={16} className="w-4 h-4" />}
+                        </button>
+                        <button onClick={() => rotatePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/90 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
+                          <RotateCw size={16} className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deletePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/90 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-red-500 rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
+                          <Trash2 size={16} className="w-4 h-4" />
+                        </button>
+                      </div>
+
                       <canvas 
                         ref={(el) => { canvasRefs.current[pageNum] = el; }} 
                         className={`max-w-full h-auto ${activeTool === "text" ? "cursor-text" : "cursor-default"}`}
