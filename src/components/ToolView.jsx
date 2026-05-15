@@ -379,7 +379,7 @@ export default function ToolView({ tool, onBack }) {
         const streamRes = await fetch("/api/ai/summarize-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ fileId: uploadedFiles[0].id }),
         });
 
         if (!streamRes.ok) throw new Error("AI summarization failed");

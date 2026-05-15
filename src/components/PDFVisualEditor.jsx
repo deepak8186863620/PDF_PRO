@@ -428,7 +428,7 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <div className="flex-1 overflow-hidden flex flex-col-reverse md:flex-row">
         {/* Sidebar */}
         <div className="w-full md:w-80 bg-zinc-950 border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col gap-8">
           <div>

@@ -1453,7 +1453,22 @@ async function startServer() {
   ══════════════════════════════════════════ */
   app.post("/api/ai/summarize", aiLimiter, async (req, res) => {
     try {
-      const { text } = req.body;
+      let { text, fileId } = req.body;
+      
+      if (fileId && !text) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const buf = await readFileFast(filePath);
+        const result = await parsePDF(buf);
+        text = result.text || "";
+        
+        if (text.trim().length < 100) {
+          logger.info("Summarize: Standard extraction too brief, running AI OCR...");
+          const ocrText = await performOCR(buf.toString("base64"), "application/pdf");
+          if (ocrText) text = ocrText;
+        }
+      }
+
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
       if (text.trim().length < 50) return res.status(400).json({ error: "Text is too short to summarize (minimum 50 characters)." });
 
@@ -1502,7 +1517,22 @@ ${text.substring(0, 45000)}`;
   ══════════════════════════════════════════ */
   app.post("/api/ai/summarize-stream", aiLimiter, async (req, res) => {
     try {
-      const { text } = req.body;
+      let { text, fileId } = req.body;
+
+      if (fileId && !text) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const buf = await readFileFast(filePath);
+        const result = await parsePDF(buf);
+        text = result.text || "";
+
+        if (text.trim().length < 100) {
+          logger.info("Summarize Stream: Standard extraction too brief, running AI OCR...");
+          const ocrText = await performOCR(buf.toString("base64"), "application/pdf");
+          if (ocrText) text = ocrText;
+        }
+      }
+
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
 
       const wordCount = text.trim().split(/\s+/).length;
