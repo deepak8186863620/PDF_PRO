@@ -285,16 +285,48 @@ async function callGeminiStream(model, payload, onChunk, retries = 4) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
+      
+      // Google's streamGenerateContent returns a JSON array: [ { ... }, { ... } ]
+      // We need to extract the objects within the array.
+      // A simple but effective way is to look for JSON object boundaries { }
+      
+      let startIdx = 0;
+      while (true) {
+        // Find the start of a JSON object
+        startIdx = buffer.indexOf('{', startIdx);
+        if (startIdx === -1) break;
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const json = JSON.parse(line.replace(/^data:\s*/, "").replace(/^,/, ""));
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) onChunk(text);
-        } catch (e) { /* ignore partial chunks */ }
+        // Try to find a matching closing brace
+        let braceCount = 0;
+        let endIdx = -1;
+        for (let j = startIdx; j < buffer.length; j++) {
+          if (buffer[j] === '{') braceCount++;
+          else if (buffer[j] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              endIdx = j;
+              break;
+            }
+          }
+        }
+
+        if (endIdx !== -1) {
+          // Found a complete JSON object
+          const jsonStr = buffer.substring(startIdx, endIdx + 1);
+          try {
+            const json = JSON.parse(jsonStr);
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) onChunk(text);
+          } catch (e) {
+            console.error("[Gemini Stream] Parse error:", e.message);
+          }
+          // Move buffer forward
+          buffer = buffer.substring(endIdx + 1);
+          startIdx = 0;
+        } else {
+          // Object is incomplete, wait for more data
+          break;
+        }
       }
     }
     return; // success

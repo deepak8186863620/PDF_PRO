@@ -368,8 +368,6 @@ export default function ToolView({ tool, onBack }) {
 
         // Use streaming for real-time summary output
         let streamedSummary = "";
-        // Set up the result file first so summary view is shown
-        setResultFile({ id: uploadedFiles[0].id, name: "summary.pdf", size: 0 });
         setSummary(""); // clear any old summary first
         setProgress(100);
         // Hide processing overlay so summary streams in live
@@ -379,10 +377,13 @@ export default function ToolView({ tool, onBack }) {
         const streamRes = await fetch("/api/ai/summarize-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: uploadedFiles[0].id }),
+          body: JSON.stringify({ text }),
         });
 
-        if (!streamRes.ok) throw new Error("AI summarization failed");
+        if (!streamRes.ok) {
+          const errData = await streamRes.json().catch(() => ({}));
+          throw new Error(errData.error || "AI summarization failed");
+        }
 
         const reader = streamRes.body.getReader();
         const decoder = new TextDecoder();
@@ -415,6 +416,7 @@ export default function ToolView({ tool, onBack }) {
         }
 
         const summaryText = streamedSummary;
+        if (!summaryText.trim()) throw new Error("AI returned an empty summary. The document may have no readable text.");
         setSummary(summaryText);
 
         if (user) {
@@ -1294,7 +1296,7 @@ export default function ToolView({ tool, onBack }) {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={downloadResult} className="btn-primary flex-1 justify-center py-3">
                   <Download size={16} />
-                  Download PDF
+                  Download {summary ? "Summary" : "Text"}
                 </button>
                 <button
                   onClick={() => { setSummary(null); setOcrText(null); setResultFile(null); setFiles([]); }}
