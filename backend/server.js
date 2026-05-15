@@ -230,9 +230,9 @@ async function callGemini(model, payload, retries = 4) {
 
     const data = await response.json();
 
-    if (response.status === 429 && i < retries - 1) {
+    if ((response.status === 429 || response.status === 503) && i < retries - 1) {
       const waitMs = (i + 1) * 5000; // 5s, 10s, 15s backoff
-      console.log(`[Gemini] Rate limit hit, waiting ${waitMs/1000}s before retry ${i+1}/${retries}...`);
+      console.log(`[Gemini] Rate limit or high demand hit (${response.status}), waiting ${waitMs/1000}s before retry ${i+1}/${retries}...`);
       await new Promise(r => setTimeout(r, waitMs));
       continue;
     }
@@ -247,7 +247,7 @@ async function callGemini(model, payload, retries = 4) {
       data: data
     };
   }
-  throw new Error("Gemini API rate limit exceeded. Please wait a moment and try again.");
+  throw new Error("Gemini API rate limit or high demand exceeded. Please wait a moment and try again.");
 }
 
 async function callGeminiStream(model, payload, onChunk, retries = 4) {
@@ -264,9 +264,9 @@ async function callGeminiStream(model, payload, onChunk, retries = 4) {
       body: JSON.stringify(payload),
     });
 
-    if (response.status === 429 && i < retries - 1) {
+    if ((response.status === 429 || response.status === 503) && i < retries - 1) {
       const waitMs = (i + 1) * 5000; // 5s, 10s, 15s backoff
-      console.log(`[Gemini Stream] Rate limit hit, waiting ${waitMs/1000}s before retry ${i+1}/${retries}...`);
+      console.log(`[Gemini Stream] Rate limit or high demand hit (${response.status}), waiting ${waitMs/1000}s before retry ${i+1}/${retries}...`);
       await new Promise(r => setTimeout(r, waitMs));
       continue;
     }
@@ -331,7 +331,7 @@ async function callGeminiStream(model, payload, onChunk, retries = 4) {
     }
     return; // success
   }
-  throw new Error("Gemini API rate limit exceeded. Please wait a moment and try again.");
+  throw new Error("Gemini API rate limit or high demand exceeded. Please wait a moment and try again.");
 }
 
 
@@ -1568,18 +1568,24 @@ ${text.substring(0, 45000)}`;
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
 
       const wordCount = text.trim().split(/\s+/).length;
-      const prompt = `You are an expert document analyst. Extract and summarize the provided document.
-Your output MUST contain ONLY headings followed by their most important bullet points. 
-Do not include an overview, abstract, or any extra conversational text.
+      const prompt = `You are an expert document analyst. Your job is to produce a comprehensive, accurate, and well-structured summary of the provided document.
 
-Formatting rules:
-- Use **Heading Name** format for headings
-- Use bullet points (•) for important points under each heading
-- Extract the absolute most critical information
-- Write in clear, professional English
+Instructions:
+1. Read the entire document carefully.
+2. Identify ALL major topics, sections, and key points.
+3. Produce a detailed structured summary using the format below.
+4. Do NOT omit important facts, figures, names, dates, or conclusions.
+5. Write in clear, professional English.
+
+Output format (strict):
+- Use ## Heading for each major section/topic
+- Use bullet points (-) for key details under each heading
+- Include sub-bullets where needed for clarity
+- After all sections, add a ## Key Takeaways section with the 5 most important conclusions
+- If the document contains numbers, statistics, or dates — include them exactly
 
 DOCUMENT (${wordCount} words):
-${text.substring(0, 45000)}`;
+${text.substring(0, 60000)}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -1588,7 +1594,7 @@ ${text.substring(0, 45000)}`;
       try {
         const payload = {
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 1200, temperature: 0.2 },
+          generationConfig: { maxOutputTokens: 2500, temperature: 0.1 },
         };
         await callGeminiStream(GEMINI_MODEL, payload, (chunkText) => {
           res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
@@ -1646,33 +1652,39 @@ ${text.substring(0, 45000)}`;
       const { message, context, history = [] } = req.body;
       if (!message || !message.trim()) return res.status(400).json({ error: "No message provided." });
 
-
-
       // Build conversation with proper role alternation for Gemini
       const rawContents = [];
 
       if (context && context.trim()) {
-        // Inject the document as the first turn so the model has full context
-        rawContents.push({
-          role: "user",
-          parts: [{ text: `You are an intelligent document assistant helping me understand my uploaded document. 
-Here is the text of the document:
+        // Inject the document context as the opening system turn
+        const systemPrompt = `You are an intelligent and thorough document assistant. The user has uploaded a document and you must help them understand it fully.
 
----
-${context.substring(0, 28000)}
----
+Here is the complete text of the uploaded document:
 
-Please answer my questions about this document. If I ask a general question (like "hello" or "what is this tool"), you can answer normally. If I ask a specific question about the document and the information is missing, let me know it's not in the document.` }]
-        });
-        rawContents.push({
-          role: "model",
-          parts: [{ text: "I have read the document and I'm ready to answer your questions about it." }]
-        });
+===== DOCUMENT START =====
+${context.substring(0, 40000)}
+===== DOCUMENT END =====
+
+Your behaviour rules:
+- Answer questions ONLY based on the document content above
+- If asked about something not in the document, say clearly: "That information is not in the uploaded document."
+- Provide detailed, accurate answers with specific quotes or data from the document when relevant
+- For general greetings or meta questions ("what can you do?"), respond helpfully
+- Always be concise but complete — never truncate an answer`;
+
+        rawContents.push({ role: "user", parts: [{ text: systemPrompt }] });
+        rawContents.push({ role: "model", parts: [{ text: "I have carefully read the uploaded document and I am ready to answer your questions accurately based on its contents. What would you like to know?" }] });
       }
 
-      // Add conversation history (last 8 turns), skipping frontend placeholder messages
-      const recentHistory = history.slice(-8).filter(
-        h => !(h.role === "model" && (h.text.includes("I've analyzed your document") || h.text.includes("I have read the document")))
+      // Add conversation history (last 10 turns), filtering out the initial greeting
+      const recentHistory = history.slice(-10).filter(
+        h => !(
+          h.role === "model" && (
+            h.text.includes("I've analyzed your document") ||
+            h.text.includes("I have read the document") ||
+            h.text.includes("I have carefully read the uploaded document")
+          )
+        )
       );
       for (const h of recentHistory) {
         rawContents.push({
@@ -1682,20 +1694,18 @@ Please answer my questions about this document. If I ask a general question (lik
       }
 
       // Add the current user message
-      rawContents.push({
-        role: "user",
-        parts: [{ text: message.trim() }]
-      });
+      rawContents.push({ role: "user", parts: [{ text: message.trim() }] });
 
       // Enforce strict role alternation required by Gemini API
       const contents = [];
       for (const msg of rawContents) {
-        if (!msg.parts[0].text || !msg.parts[0].text.trim()) continue;
+        const msgText = msg.parts[0]?.text;
+        if (!msgText || !msgText.trim()) continue;
         if (contents.length > 0 && contents[contents.length - 1].role === msg.role) {
           // Merge consecutive same-role messages
-          contents[contents.length - 1].parts[0].text += "\n\n" + msg.parts[0].text;
+          contents[contents.length - 1].parts[0].text += "\n\n" + msgText;
         } else {
-          contents.push({ role: msg.role, parts: [{ text: msg.parts[0].text }] });
+          contents.push({ role: msg.role, parts: [{ text: msgText }] });
         }
       }
 
@@ -1704,21 +1714,23 @@ Please answer my questions about this document. If I ask a general question (lik
         return res.status(400).json({ error: "Invalid conversation structure." });
       }
 
-      const result = await callGemini("gemini-2.5-flash", {
-        contents: contents, // Chat requires roles
-        generationConfig: { maxOutputTokens: 1500, temperature: 0.15 },
+      logger.info(`[Chat] turns=${contents.length}, context=${context ? context.length + ' chars' : 'none'}`);
+
+      const result = await callGemini(GEMINI_MODEL, {
+        contents,
+        generationConfig: { maxOutputTokens: 2000, temperature: 0.1 },
       });
 
       const response = result.text || "";
-      if (!response.trim()) throw new Error("AI returned empty response");
+      if (!response.trim()) throw new Error("AI returned an empty response. Please try rephrasing your question.");
       
       res.json({ response });
     } catch (err) {
       logger.error("ai/chat: " + err.message);
-      const isKeyErr = err.message?.includes("API_KEY") || err.message?.includes("quota");
+      const isKeyErr = err.message?.includes("API_KEY") || err.message?.includes("quota") || err.message?.includes("403") || err.message?.includes("401");
       res.status(500).json({ 
         error: isKeyErr
-          ? "AI service unavailable — check your API key configuration."
+          ? "AI service unavailable — API key issue or quota exceeded."
           : err.message || "Chat failed. Please try again."
       });
     }

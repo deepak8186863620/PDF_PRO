@@ -39,6 +39,7 @@ export default function ToolView({ tool, onBack }) {
   const [pdfContext, setPdfContext] = useState(null);
   const [isChatting, setIsChatting] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("Processing your files...");
+  const [isStreaming, setIsStreaming] = useState(false);
   const [user] = useAuthState(auth);
 
   // Range selector state (for remove-pages tool)
@@ -111,7 +112,10 @@ export default function ToolView({ tool, onBack }) {
         }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error ${res.status}`);
+      }
       const data = await res.json();
       
       setChatMessages(prev => [...prev, { role: "model", text: data.response }]);
@@ -370,8 +374,10 @@ export default function ToolView({ tool, onBack }) {
         let streamedSummary = "";
         setSummary(""); // clear any old summary first
         setProgress(100);
-        // Hide processing overlay so summary streams in live
+        // Hide processing overlay and mark streaming active so the result panel
+        // stays visible even before the first chunk arrives (summary="" is falsy)
         setIsProcessing(false);
+        setIsStreaming(true);
         setProgress(0);
 
         const streamRes = await fetch("/api/ai/summarize-stream", {
@@ -382,6 +388,7 @@ export default function ToolView({ tool, onBack }) {
 
         if (!streamRes.ok) {
           const errData = await streamRes.json().catch(() => ({}));
+          setIsStreaming(false);
           throw new Error(errData.error || "AI summarization failed");
         }
 
@@ -401,6 +408,7 @@ export default function ToolView({ tool, onBack }) {
                   // Surface AI errors to the user immediately
                   toast.error("AI Error: " + parsed.error);
                   setIsProcessing(false);
+                  setIsStreaming(false);
                   setResultFile(null);
                   setSummary(null);
                   return;
@@ -415,6 +423,7 @@ export default function ToolView({ tool, onBack }) {
           }
         }
 
+        setIsStreaming(false);
         const summaryText = streamedSummary;
         if (!summaryText.trim()) throw new Error("AI returned an empty summary. The document may have no readable text.");
         setSummary(summaryText);
@@ -599,6 +608,7 @@ export default function ToolView({ tool, onBack }) {
     } catch (error) {
       console.error(error);
       setIsProcessing(false);
+      setIsStreaming(false);
       trackError('ToolView', error.message);
       toast.error(error.message || "An error occurred during processing.");
     }
@@ -692,7 +702,7 @@ export default function ToolView({ tool, onBack }) {
         </div>
 
         <AnimatePresence mode="wait">
-          {!resultFile && !summary && !ocrText ? (
+          {!resultFile && !summary && !ocrText && !isStreaming ? (
             <motion.div
               key="upload"
               initial={{ opacity: 0, y: 16 }}
@@ -1273,7 +1283,7 @@ export default function ToolView({ tool, onBack }) {
                 Close Chat & Start Over
               </button>
             </motion.div>
-          ) : summary || ocrText ? (
+          ) : summary || ocrText || isStreaming ? (
             <motion.div
               key="summary"
               initial={{ opacity: 0, y: 16 }}
@@ -1286,15 +1296,35 @@ export default function ToolView({ tool, onBack }) {
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
                   {summary ? <Sparkles size={18} className="text-white" /> : <FileText size={18} className="text-white" />}
                 </div>
-                <h2 className="text-xl font-700 text-white">{summary ? "Document Summary" : "Extracted Text"}</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-700 text-white">{summary ? "Document Summary" : ocrText ? "Extracted Text" : "Generating Summary..."}</h2>
+                  {isStreaming && (
+                    <div className="flex gap-1 items-center">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.15s]" />
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.3s]" />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="prose-custom mb-8 text-left text-sm leading-relaxed max-h-[400px] overflow-y-auto pr-2">
-                <ReactMarkdown>{summary || ocrText}</ReactMarkdown>
+              <div className="prose-custom mb-8 text-left text-sm leading-relaxed max-h-[500px] overflow-y-auto pr-2">
+                {(summary || ocrText) ? (
+                  <ReactMarkdown>{summary || ocrText}</ReactMarkdown>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4">
+                    <div className="flex gap-2">
+                      <div className="w-2.5 h-2.5 bg-zinc-500 rounded-full animate-bounce" />
+                      <div className="w-2.5 h-2.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-2.5 h-2.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                    </div>
+                    <p className="text-zinc-500 text-xs">AI is reading your document...</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <button onClick={downloadResult} className="btn-primary flex-1 justify-center py-3">
+                <button onClick={downloadResult} disabled={isStreaming || !summary} className="btn-primary flex-1 justify-center py-3 disabled:opacity-40 disabled:cursor-not-allowed">
                   <Download size={16} />
                   Download {summary ? "Summary" : "Text"}
                 </button>
