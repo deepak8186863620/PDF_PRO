@@ -1441,7 +1441,15 @@ async function startServer() {
   ══════════════════════════════════════════ */
   app.post("/api/ai/summarize", aiLimiter, async (req, res) => {
     try {
-      const { text } = req.body;
+      let { text, fileId } = req.body;
+      
+      if (fileId && !text) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const result = await parsePDF(await readFileFast(filePath));
+        text = result.text || "";
+      }
+
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
       if (text.trim().length < 50) return res.status(400).json({ error: "Text is too short to summarize (minimum 50 characters)." });
 
@@ -1490,7 +1498,15 @@ ${text.substring(0, 45000)}`;
   ══════════════════════════════════════════ */
   app.post("/api/ai/summarize-stream", aiLimiter, async (req, res) => {
     try {
-      const { text } = req.body;
+      let { text, fileId } = req.body;
+
+      if (fileId && !text) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const result = await parsePDF(await readFileFast(filePath));
+        text = result.text || "";
+      }
+
       if (!text || !text.trim()) return res.status(400).json({ error: "No text provided." });
 
       const wordCount = text.trim().split(/\s+/).length;
@@ -1537,7 +1553,18 @@ ${text.substring(0, 45000)}`;
   ══════════════════════════════════════════ */
   app.post("/api/ai/ocr", aiLimiter, async (req, res) => {
     try {
-      const { base64, mimeType } = req.body;
+      let { base64, mimeType, fileId } = req.body;
+      
+      if (fileId && !base64) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const buf = await readFileFast(filePath);
+        base64 = buf.toString("base64");
+        if (!mimeType) {
+          mimeType = fileId.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
+        }
+      }
+
       if (!base64) return res.status(400).json({ error: "No data provided." });
 
       const text = await performOCR(base64, mimeType);
@@ -1553,7 +1580,18 @@ ${text.substring(0, 45000)}`;
   ══════════════════════════════════════════ */
   app.post("/api/ai/ocr-structured", aiLimiter, async (req, res) => {
     try {
-      const { base64, mimeType } = req.body;
+      let { base64, mimeType, fileId } = req.body;
+
+      if (fileId && !base64) {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
+        const buf = await readFileFast(filePath);
+        base64 = buf.toString("base64");
+        if (!mimeType) {
+          mimeType = fileId.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
+        }
+      }
+
       if (!base64) return res.status(400).json({ error: "No data provided." });
 
       const parsed = await performStructuredOCR(base64, mimeType);
