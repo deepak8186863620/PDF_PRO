@@ -379,7 +379,7 @@ export default function ToolView({ tool, onBack }) {
         const streamRes = await fetch("/api/ai/summarize-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: uploadedFiles[0].id }),
+          body: JSON.stringify({ text }),
         });
 
         if (!streamRes.ok) throw new Error("AI summarization failed");
@@ -466,7 +466,7 @@ export default function ToolView({ tool, onBack }) {
         const ocrRes = await fetch("/api/ai/ocr", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: uploadedFiles[0].id }),
+          body: JSON.stringify({ base64: base64Data, mimeType }),
         });
 
         if (!ocrRes.ok) throw new Error(await ocrRes.text());
