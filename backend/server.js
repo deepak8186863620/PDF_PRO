@@ -396,8 +396,20 @@ async function startServer() {
         }
       }
 
-      if (!extractedText.trim()) {
-        return res.status(400).json({ error: "No text found — this may be a scanned PDF. Try OCR instead." });
+      if (extractedText.trim().length < 100) {
+        logger.info("Standard extraction returned very little text. Falling back to AI OCR...");
+        try {
+          const ocrText = await performOCR(buf.toString("base64"), "application/pdf");
+          if (ocrText && ocrText.trim().length > extractedText.trim().length) {
+            extractedText = ocrText;
+          }
+        } catch (ocrErr) {
+          logger.warn("AI OCR fallback failed: " + ocrErr.message);
+          // If OCR fails, we still have the (very brief) standard text, or we can throw error
+          if (!extractedText.trim()) {
+            return res.status(400).json({ error: "No text found — this may be a scanned PDF. Try OCR instead." });
+          }
+        }
       }
 
       setCache(cacheKey, extractedText);
