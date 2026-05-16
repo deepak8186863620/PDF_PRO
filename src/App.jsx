@@ -9,6 +9,8 @@ import Dashboard from "./components/Dashboard";
 import AboutUs from "./components/AboutUs";
 import Login from "./components/Login";
 import FeedbackPage from "./components/FeedbackPage";
+import TermsOfService from "./components/TermsOfService";
+import PrivacyPolicy from "./components/PrivacyPolicy";
 import { TOOLS } from "./constants";
 import {
   Sparkles, FileText, Image as ImageIcon,
@@ -29,7 +31,7 @@ export default function App() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user && view !== "login" && view !== "about" && view !== "feedback") {
+      if (!user && view !== "login" && view !== "about" && view !== "feedback" && view !== "terms" && view !== "privacy") {
         setView("login");
         setSelectedTool(null);
       } else if (user && view === "login") {
@@ -190,6 +192,29 @@ export default function App() {
     setView("login");
   };
 
+  const handleTermsClick = () => {
+    if (view !== "terms" || selectedTool) {
+      window.history.pushState({ view: "terms" }, "", "");
+    }
+    setSelectedTool(null);
+    setView("terms");
+  };
+
+  const handlePrivacyClick = () => {
+    if (view !== "privacy" || selectedTool) {
+      window.history.pushState({ view: "privacy" }, "", "");
+    }
+    setSelectedTool(null);
+    setView("privacy");
+  };
+
+  const handleToolClick = (toolName) => {
+    const tool = TOOLS.find(t => t.name === toolName);
+    if (tool) {
+      handleOpenTool(tool);
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#000000" }}>
@@ -291,6 +316,26 @@ export default function App() {
               >
                 <FeedbackPage />
               </motion.div>
+            ) : view === "terms" ? (
+              <motion.div
+                key="terms"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TermsOfService />
+              </motion.div>
+            ) : view === "privacy" ? (
+              <motion.div
+                key="privacy"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <PrivacyPolicy />
+              </motion.div>
             ) : view === "login" ? (
               <motion.div
                 key="login"
@@ -299,7 +344,15 @@ export default function App() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
               >
-                <Login onBack={handleHomeClick} onLoginSuccess={handleDashboardClick} onAboutClick={handleAboutClick} />
+                <Login 
+                  onBack={handleHomeClick} 
+                  onLoginSuccess={handleDashboardClick} 
+                  onAboutClick={handleAboutClick} 
+                  onToolClick={handleToolClick} 
+                  onContactClick={handleFeedbackClick} 
+                  onTermsClick={handleTermsClick} 
+                  onPrivacyClick={handlePrivacyClick} 
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -537,7 +590,7 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {view !== "login" && <Footer onAboutClick={handleAboutClick} />}
+        {view !== "login" && <Footer onAboutClick={handleAboutClick} onToolClick={handleToolClick} onContactClick={handleFeedbackClick} onTermsClick={handleTermsClick} onPrivacyClick={handlePrivacyClick} />}
         <PWAInstallPrompt />
       </div>
     </ErrorBoundary>

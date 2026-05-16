@@ -6,7 +6,7 @@ import loginPromo from "../assets/login-promo.png";
 
 import Footer from "./Footer";
 
-export default function Login({ onBack, onLoginSuccess, onAboutClick }) {
+export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClick, onContactClick, onTermsClick, onPrivacyClick }) {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -228,7 +228,7 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick }) {
       </div>
       
       {/* Universal Footer */}
-      <Footer onAboutClick={onAboutClick} />
+      <Footer onAboutClick={onAboutClick} onToolClick={onToolClick} onContactClick={onContactClick} onTermsClick={onTermsClick} onPrivacyClick={onPrivacyClick} />
     </div>
   );
 }
