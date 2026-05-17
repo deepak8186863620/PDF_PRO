@@ -16,7 +16,7 @@
 
 Honestly, I built this because I was tired of paying for iLovePDF or SmallPDF every month just to merge a few files or compress a PDF. So I made my own — and it ended up being way more capable than I expected.
 
-This is a **full-stack web application** that lets you do everything you'd normally need a paid tool for: merge, split, compress, rotate, watermark, lock/unlock PDFs, extract text with OCR, convert documents between formats, and even **chat with your PDF** using Gemini AI. All file processing happens on your own server, so your documents never leave your control.
+This is a **full-stack web application** that lets you do everything you'd normally need a paid tool for: merge, split, compress, rotate, watermark, lock/unlock PDFs, extract text with OCR, convert documents between formats, and even **chat with your PDF** using Gemini AI. All file processing happens on your own server, so your documents never leave your control. It features an optional user authentication system and can be installed as a Progressive Web App (PWA) for a native-like experience.
 
 ---
 
@@ -27,7 +27,7 @@ This is a **full-stack web application** that lets you do everything you'd norma
 |---|---|
 | **Merge PDF** | Combine multiple PDFs into one, in any order |
 | **Split PDF** | Extract specific pages or split into individual files |
-| **Compress PDF** | Shrink file size using object stream optimization |
+| **Compress PDF** | Shrink file size with adjustable compression levels (Low, Medium, High) |
 | **Rotate PDF** | Rotate all or specific pages by any degree |
 | **Watermark PDF** | Add custom text watermarks with adjustable opacity, color, and angle |
 | **Page Numbers** | Auto-number pages at any position (top/bottom, left/center/right) |
@@ -69,6 +69,7 @@ This is a **full-stack web application** that lets you do everything you'd norma
 ## 📱 Mobile-First Experience
 
 This app isn't just a desktop tool. We've optimized the entire experience for modern smartphones:
+- **Installable PWA**: Install the application directly to your home screen for a native app-like experience.
 - **Side-by-Side Tools**: Two-column layout on mobile for faster navigation.
 - **Back-Gesture Support**: Full History API integration means your phone's back-swipe gesture cleanly exits tools without reloading the site.
 - **Responsive Typography**: Dynamic font scaling ensures readability on everything from an iPhone SE to a 4K monitor.
