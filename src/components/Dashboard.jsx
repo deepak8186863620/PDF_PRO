@@ -41,7 +41,7 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
 
   if (!user) {
     return (
-      <div className="min-h-screen pt-40 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-[100dvh] pt-40 flex flex-col items-center justify-center gap-4">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
           <Clock size={24} className="text-white" />
         </div>
@@ -86,7 +86,7 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
   };
 
   return (
-    <div className="min-h-screen pt-20 flex bg-[#0f0f11]">
+    <div className="min-h-[100dvh] pt-20 flex bg-[#0f0f11]">
       
       {/* Premium Sidebar */}
       <div className="w-[260px] border-r border-white/5 hidden lg:flex flex-col fixed left-0 top-20 bottom-0 bg-[#09090b] z-10 pt-6">
@@ -104,12 +104,12 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
         
         {/* Navigation */}
         <div className="px-3 mb-8 space-y-1">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/10 text-white font-500 transition-colors">
-            <Home size={18} className="text-white" strokeWidth={2} />
+          <button onClick={onNavigateHome} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-400 hover:bg-white/5 hover:text-zinc-200 font-500 transition-colors group">
+            <Home size={18} className="text-zinc-500 group-hover:text-zinc-300" strokeWidth={2} />
             <span className="text-sm">Home</span>
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-400 hover:bg-white/5 hover:text-zinc-200 font-500 transition-colors group">
-            <Folder size={18} className="text-zinc-500 group-hover:text-zinc-300" strokeWidth={2} />
+          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/10 text-white font-500 transition-colors">
+            <Folder size={18} className="text-white" strokeWidth={2} />
             <span className="text-sm">Documents</span>
           </button>
         </div>

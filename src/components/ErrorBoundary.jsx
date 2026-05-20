@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-black p-4 selection:bg-red-500 selection:text-white">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-black p-4 selection:bg-red-500 selection:text-white">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

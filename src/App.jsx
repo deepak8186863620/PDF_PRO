@@ -217,7 +217,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#000000" }}>
+      <div className="min-h-[100dvh] font-sans overflow-x-hidden" style={{ background: "#000000" }}>
         <Toaster
           position="top-center"
           theme="dark"

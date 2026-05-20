@@ -3,7 +3,7 @@ import { ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
 
 export default function TermsOfService() {
   return (
-    <div className="pt-32 pb-20 px-6 min-h-screen text-zinc-400">
+    <div className="pt-32 pb-20 px-6 min-h-[100dvh] text-zinc-400">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
           <motion.div

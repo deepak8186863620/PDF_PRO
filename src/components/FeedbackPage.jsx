@@ -81,7 +81,7 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="pt-32 pb-20 px-6 min-h-screen">
+    <div className="pt-32 pb-20 px-6 min-h-[100dvh]">
       <div className="max-w-7xl mx-auto">
         
         {/* Hero Section */}

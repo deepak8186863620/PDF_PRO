@@ -658,7 +658,7 @@ export default function ToolView({ tool, onBack }) {
   };
 
   return (
-    <div className="min-h-screen pt-24 md:pt-32 pb-24 px-4 md:px-6">
+    <div className="min-h-[100dvh] pt-24 md:pt-32 pb-24 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
         <button
           onClick={onBack}
