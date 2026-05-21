@@ -52,13 +52,6 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
 
   const handleGoogleSignIn = async () => {
     try {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        setIsRedirecting(true);
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-
       const result = await signInWithPopup(auth, googleProvider);
       const u = result.user;
       const userDocRef = doc(db, "users", u.uid);
