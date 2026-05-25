@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle2, Shield, Zap, Globe, FileText, Lock, Brain, ChevronDown, Sparkles, Loader2 } from "lucide-react";
-import { auth, googleProvider, signInWithPopup, signInWithRedirect, getRedirectResult, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
+import { auth, googleProvider, microsoftProvider, signInWithPopup, signInWithRedirect, getRedirectResult, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { setAnalyticsUser, trackLogin, trackSignUp } from "../lib/analytics";
 import loginPromo from "../assets/login-promo.png";
 
 import Footer from "./Footer";
 
 export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClick, onContactClick, onTermsClick, onPrivacyClick }) {
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isRedirecting, setIsRedirecting]   = useState(false);
+  const [msLoading, setMsLoading]           = useState(false);
+  const [googleLoading, setGoogleLoading]   = useState(false);
 
   useEffect(() => {
     const handleRedirectResult = async () => {
@@ -50,49 +52,57 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
     handleRedirectResult();
   }, [onLoginSuccess]);
 
+  const saveUserToFirestore = async (u, providerName) => {
+    const userDocRef = doc(db, "users", u.uid);
+    const userDoc    = await getDoc(userDocRef);
+    const isNewUser  = !userDoc.exists();
+    const userData   = {
+      uid: u.uid, email: u.email,
+      displayName: u.displayName, photoURL: u.photoURL,
+      lastLogin: Timestamp.now(),
+    };
+    if (isNewUser) { userData.createdAt = Timestamp.now(); userData.role = "user"; }
+    await setDoc(userDocRef, userData, { merge: true });
+    setAnalyticsUser(u.uid, providerName);
+    if (isNewUser) trackSignUp(u.uid, providerName); else trackLogin(u.uid, providerName);
+    return isNewUser;
+  };
+
   const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const u = result.user;
-      const userDocRef = doc(db, "users", u.uid);
-      const userDoc = await getDoc(userDocRef);
-      const isNewUser = !userDoc.exists();
-      
-      const userData = {
-        uid: u.uid,
-        email: u.email,
-        displayName: u.displayName,
-        photoURL: u.photoURL,
-        lastLogin: Timestamp.now(),
-      };
-      
-      if (isNewUser) {
-        userData.createdAt = Timestamp.now();
-        userData.role = "user";
-      }
-      
-      await setDoc(userDocRef, userData, { merge: true });
-
-      // ── Analytics ──────────────────────────────────────────
-      // 1. Attach Firebase UID to GA4 so this user is tracked separately
-      setAnalyticsUser(u.uid, 'google.com');
-      // 2. Fire the appropriate GA4 reserved event
-      if (isNewUser) {
-        trackSignUp(u.uid, 'Google');
-      } else {
-        trackLogin(u.uid, 'Google');
-      }
-      // ───────────────────────────────────────────────────────
-
+      await saveUserToFirestore(result.user, 'google.com');
       if (onLoginSuccess) onLoginSuccess();
     } catch (error) {
-      console.error("Login failed:", error);
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cross-origin-isolated' || error.code === 'auth/web-storage-unsupported') {
+      console.error("Google login failed:", error);
+      if (['auth/popup-blocked','auth/popup-closed-by-user','auth/cross-origin-isolated','auth/web-storage-unsupported'].includes(error.code)) {
         setIsRedirecting(true);
         await signInWithRedirect(auth, googleProvider);
       } else {
-        alert(`Login failed: ${error.message}\n\nIf you just added your domain to Firebase, it may take 5-10 minutes to take effect.`);
+        alert(`Login failed: ${error.message}`);
       }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    setMsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, microsoftProvider);
+      await saveUserToFirestore(result.user, 'microsoft.com');
+      if (onLoginSuccess) onLoginSuccess();
+    } catch (error) {
+      console.error("Microsoft login failed:", error);
+      if (['auth/popup-blocked','auth/popup-closed-by-user','auth/cross-origin-isolated','auth/web-storage-unsupported'].includes(error.code)) {
+        setIsRedirecting(true);
+        await signInWithRedirect(auth, microsoftProvider);
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        alert(`Microsoft login failed: ${error.message}\n\nMake sure Microsoft is enabled in your Firebase project console under Authentication > Sign-in method.`);
+      }
+    } finally {
+      setMsLoading(false);
     }
   };
 
@@ -144,16 +154,14 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
               </p>
             </div>
 
+            {/* ── Google ── */}
             <button
               onClick={handleGoogleSignIn}
-              disabled={isRedirecting}
-              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 shadow-xl hover:shadow-white/10 group mb-8 disabled:opacity-70 disabled:cursor-not-allowed"
+              disabled={isRedirecting || googleLoading || msLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 text-black px-6 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 shadow-xl hover:shadow-white/10 mb-3 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isRedirecting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Redirecting to Google...
-                </>
+              {googleLoading || isRedirecting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> {isRedirecting ? "Redirecting…" : "Signing in…"}</>
               ) : (
                 <>
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -163,6 +171,28 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                   </svg>
                   Continue with Google
+                </>
+              )}
+            </button>
+
+            {/* ── Microsoft ── */}
+            <button
+              onClick={handleMicrosoftSignIn}
+              disabled={isRedirecting || googleLoading || msLoading}
+              className="w-full flex items-center justify-center gap-3 bg-[#2f2f2f] hover:bg-[#3c3c3c] text-white px-6 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 shadow-xl hover:shadow-white/5 mb-8 disabled:opacity-60 disabled:cursor-not-allowed border border-white/10"
+            >
+              {msLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Signing in…</>
+              ) : (
+                <>
+                  {/* Official Microsoft logo SVG */}
+                  <svg viewBox="0 0 21 21" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+                    <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                  </svg>
+                  Continue with Microsoft
                 </>
               )}
             </button>

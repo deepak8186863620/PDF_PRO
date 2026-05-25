@@ -151,6 +151,16 @@ service cloud.firestore {
       allow create: if isAuthenticated(); // Allow users to log client-side errors
     }
 
+    match /esign_documents/{docId} {
+      allow create: if isAuthenticated() && request.resource.data.creatorUid == request.auth.uid;
+      allow read: if isAuthenticated() && 
+                  (resource.data.creatorUid == request.auth.uid || 
+                   request.auth.token.email in resource.data.signerEmails);
+      allow update: if isAuthenticated() && 
+                    (resource.data.creatorUid == request.auth.uid || 
+                     request.auth.token.email in resource.data.signerEmails);
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { auth, db, collection, addDoc, Timestamp, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import ESignTool from "./ESignTool";
 import { trackToolUsage, trackError } from "../lib/analytics";
+
 
 export default function ToolView({ tool, onBack }) {
   const [files, setFiles] = useState([]);
@@ -701,15 +703,21 @@ export default function ToolView({ tool, onBack }) {
           )}
         </div>
 
-        <AnimatePresence mode="wait">
-          {!resultFile && !summary && !ocrText && !isStreaming ? (
-            <motion.div
-              key="upload"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.25 }}
-            >
+        {tool.id === "esign-pdf" && (
+          <ESignTool onBack={onBack} />
+        )}
+
+        {tool.id !== "esign-pdf" && (
+          <AnimatePresence mode="wait">
+            {!resultFile && !summary && !ocrText && !isStreaming ? (
+              <motion.div
+                key="upload"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.25 }}
+              >
+
               <div className="mb-6 max-w-md mx-auto p-5 rounded-2xl"
                 style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
                 <label className="block text-[10px] font-700 uppercase tracking-widest mb-2.5" style={{ color: "#ffffff" }}>
@@ -1396,7 +1404,10 @@ export default function ToolView({ tool, onBack }) {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
+
+
 
       {isProcessing && <ProcessingOverlay status={processingStatus} progress={progress} />}
 

@@ -33,12 +33,37 @@ export default function App() {
     if (!loading) {
       if (!user && view !== "login" && view !== "about" && view !== "feedback" && view !== "terms" && view !== "privacy") {
         setView("login");
-        setSelectedTool(null);
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has("esignDocId")) {
+          setSelectedTool(null);
+        }
       } else if (user && view === "login") {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("esignDocId")) {
+          const esignTool = TOOLS.find(t => t.id === "esign-pdf");
+          if (esignTool) {
+            setSelectedTool(esignTool);
+          }
+        }
         setView("home");
       }
     }
   }, [user, loading, view]);
+
+  // Handle auto-opening shared document if already authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      const params = new URLSearchParams(window.location.search);
+      const esignDocId = params.get("esignDocId");
+      if (esignDocId) {
+        const esignTool = TOOLS.find(t => t.id === "esign-pdf");
+        if (esignTool && selectedTool?.id !== "esign-pdf") {
+          setSelectedTool(esignTool);
+          setView("home");
+        }
+      }
+    }
+  }, [user, loading]);
 
   // Track SPA page views on every route/view change
   useEffect(() => {

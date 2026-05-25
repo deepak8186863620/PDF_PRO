@@ -231,4 +231,15 @@ export const TOOLS = [
     features: ["Interactive Q&A", "Context-aware Responses", "Document Analysis", "Instant Insights"],
     proTip: "You can ask specific questions like 'What is the total amount in the invoice?' or 'Summarize the conclusion section'."
   },
+  {
+    id: "esign-pdf",
+    name: "E-Sign PDF",
+    description: "Draw, type, or upload your signature and place it anywhere on your PDF documents.",
+    icon: FileSignature,
+    category: "pdf",
+    color: "bg-gradient-to-br from-violet-500 to-indigo-700",
+    features: ["Interactive Drag & Drop", "Stylish Signature Fonts", "Date & Verified Badge Stamps", "Secure Processing"],
+    proTip: "You can place multiple signatures across different pages and resize them visually before applying."
+  }
 ];
+

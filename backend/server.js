@@ -6,6 +6,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import multer from "multer";
 import cors from "cors";
+import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFRawStream, PDFDict } from "pdf-lib";
 import sharp from "sharp";
@@ -95,8 +96,28 @@ const logger = winston.createLogger({
 /* ─────────────── CONSTANTS ─────────────── */
 const PORT = 3000;
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+const ESIGN_DIR = path.join(UPLOADS_DIR, "esign");
 const FILE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_UPLOAD_SIZE = "200mb";
+
+// Encrypted storage for e-signed documents
+const ENCRYPTION_KEY_SEED = process.env.PDF_ENCRYPTION_KEY || "SecureESignSuperKeySecret2026!";
+const ENCRYPTION_KEY = crypto.createHash("sha256").update(ENCRYPTION_KEY_SEED).digest();
+const IV_LENGTH = 16;
+
+function encryptBuffer(buffer) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  return Buffer.concat([iv, encrypted]);
+}
+
+function decryptBuffer(encryptedBuffer) {
+  const iv = encryptedBuffer.subarray(0, IV_LENGTH);
+  const encrypted = encryptedBuffer.subarray(IV_LENGTH);
+  const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+}
 
 /* ─────────────── IN-MEMORY CACHE ─────────────── */
 const cache = new Map();
@@ -344,6 +365,7 @@ const aiLimiter    = rateLimit({ windowMs: 60_000, max: 30, message: { error: "T
 async function startServer() {
   // Ensure uploads dir
   await fsPromises.mkdir(UPLOADS_DIR, { recursive: true });
+  await fsPromises.mkdir(ESIGN_DIR, { recursive: true });
 
   const app = express();
 
@@ -1739,14 +1761,177 @@ Your behaviour rules:
 
 
   /* ══════════════════════════════════════════
+     PDF — E-SIGN
+  ══════════════════════════════════════════ */
+  app.post("/api/pdf/esign", async (req, res) => {
+    try {
+      const { fileId, signatures } = req.body;
+      if (!fileId) return res.status(400).json({ error: "No fileId provided." });
+      if (!Array.isArray(signatures) || signatures.length === 0)
+        return res.status(400).json({ error: "No signatures provided." });
+
+      // Determine file path
+      let filePath;
+      let isEncrypted = false;
+
+      const esignPath = path.join(ESIGN_DIR, fileId);
+      const normalPath = path.join(UPLOADS_DIR, fileId);
+
+      if (fs.existsSync(esignPath)) {
+        filePath = esignPath;
+        isEncrypted = true;
+      } else if (fs.existsSync(normalPath)) {
+        filePath = normalPath;
+        isEncrypted = false;
+      } else {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      let pdfBuffer = await readFileFast(filePath);
+      if (isEncrypted) {
+        pdfBuffer = decryptBuffer(pdfBuffer);
+      }
+
+      if (!isPDF(pdfBuffer)) return res.status(400).json({ error: "Not a valid PDF." });
+
+      const srcPdf = await PDFDocument.load(pdfBuffer);
+      const pages = srcPdf.getPages();
+
+      for (const sig of signatures) {
+        const {
+          pageIndex, pdfX, pdfY, pdfWidth, pdfHeight,
+          imageData, signerName, showDate, showBadge, date
+        } = sig;
+
+        if (pageIndex < 0 || pageIndex >= pages.length) continue;
+        const page = pages[pageIndex];
+
+        // imageData must be base64 PNG
+        const b64 = (imageData || "").replace(/^data:image\/png;base64,/, "");
+        if (!b64) continue;
+        const imgBytes = Buffer.from(b64, "base64");
+        const embeddedImg = await srcPdf.embedPng(imgBytes);
+
+        // pdf-lib origin is bottom-left; pdfY from frontend is already bottom-left
+        page.drawImage(embeddedImg, {
+          x: pdfX,
+          y: pdfY,
+          width: pdfWidth,
+          height: pdfHeight,
+          opacity: 1,
+        });
+
+        // Optional signer info beneath signature
+        if (signerName || showDate) {
+          const metaFont = await srcPdf.embedFont(StandardFonts.HelveticaOblique);
+          const fz = 7;
+          const lineH = fz + 3;
+          let labelY = pdfY - lineH;
+          if (signerName) {
+            page.drawText(`Signed by: ${signerName}`, {
+              x: pdfX, y: labelY, size: fz, font: metaFont,
+              color: rgb(0.25, 0.25, 0.35),
+            });
+            labelY -= lineH;
+          }
+          if (showDate) {
+            const dateStr = date || new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+            page.drawText(`Date: ${dateStr}`, {
+              x: pdfX, y: labelY, size: fz, font: metaFont,
+              color: rgb(0.25, 0.25, 0.35),
+            });
+          }
+        }
+
+        // Optional verified stamp badge
+        if (showBadge) {
+          const badgeFont = await srcPdf.embedFont(StandardFonts.HelveticaBold);
+          const bx = pdfX + pdfWidth + 4;
+          const by = pdfY + pdfHeight / 2 - 4;
+          page.drawRectangle({
+            x: bx - 2, y: by - 2,
+            width: 52, height: 14,
+            color: rgb(0.93, 0.98, 0.93),
+            borderColor: rgb(0.0, 0.6, 0.2),
+            borderWidth: 0.75,
+            borderOpacity: 1,
+          });
+          page.drawText("\u2713 VERIFIED", {
+            x: bx, y: by + 1, size: 6.5, font: badgeFont,
+            color: rgb(0.0, 0.55, 0.15),
+          });
+        }
+      }
+
+      // Lock signed sections by flattening any interactive form fields
+      try {
+        const form = srcPdf.getForm();
+        form.flatten();
+      } catch (e) {
+        logger.info("Form flattening skipped or not applicable: " + e.message);
+      }
+
+      const rawBytes = await srcPdf.save();
+      const encryptedBytes = encryptBuffer(Buffer.from(rawBytes));
+
+      const outName = `esign-${uuidv4()}.pdf`;
+      const outPath = path.join(ESIGN_DIR, outName);
+      await writeFileFast(outPath, encryptedBytes);
+
+      res.json({ id: outName, name: "signed.pdf" });
+    } catch (err) {
+      logger.error("esign: " + err.message);
+      res.status(err.status || 500).json({ error: err.message });
+    }
+  });
+
+  /* ══════════════════════════════════════════
+     PDF — E-SIGN EMAIL NOTIFICATION MOCK
+  ══════════════════════════════════════════ */
+  app.post("/api/pdf/esign/notify", async (req, res) => {
+    try {
+      const { docId, signerEmail, shareLink, docName } = req.body;
+      if (!docId || !signerEmail || !shareLink) {
+        return res.status(400).json({ error: "Missing required notification fields." });
+      }
+
+      // Simulating secure email send. Logging details to terminal.
+      console.log("\n============================================================\n");
+      logger.info(`📧 SECURE EMAIL NOTIFICATION SENT`);
+      console.log(`To: ${signerEmail}`);
+      console.log(`Subject: Signature Request: Please sign the document "${docName || 'shared.pdf'}"`);
+      console.log(`Body: You have been requested to add your signature to a document.`);
+      console.log(`      Click the secure link below to log in, review, and sign:`);
+      console.log(`      ${shareLink}`);
+      console.log("\n============================================================\n");
+
+      res.json({ success: true, message: `Notification email mock sent to ${signerEmail}` });
+    } catch (err) {
+      logger.error("esign/notify: " + err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ══════════════════════════════════════════
      DOWNLOAD
   ══════════════════════════════════════════ */
   app.get("/api/download/:id", async (req, res) => {
     const fileId = req.params.id;
     const customName = req.query.name;
-    const filePath = path.join(UPLOADS_DIR, fileId);
-
-    if (!fs.existsSync(filePath)) {
+    
+    let filePath;
+    let isEncrypted = false;
+    
+    const esignPath = path.join(ESIGN_DIR, fileId);
+    const normalPath = path.join(UPLOADS_DIR, fileId);
+    
+    if (fs.existsSync(esignPath)) {
+      filePath = esignPath;
+      isEncrypted = true;
+    } else if (fs.existsSync(normalPath)) {
+      filePath = normalPath;
+      isEncrypted = false;
+    } else {
       return res.status(404).json({ error: "File not found" });
     }
 
@@ -1763,12 +1948,24 @@ Your behaviour rules:
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
-    res.setHeader("Content-Length", stat.size);
     res.setHeader("Cache-Control", "no-cache");
 
-    const readStream = fs.createReadStream(filePath);
-    readStream.on("error", (err) => { logger.error("Download stream error: " + err.message); });
-    await pipeline(readStream, res).catch(() => {});
+    if (isEncrypted) {
+      try {
+        const encryptedBytes = await readFileFast(filePath);
+        const decryptedBytes = decryptBuffer(encryptedBytes);
+        res.setHeader("Content-Length", decryptedBytes.length);
+        res.send(decryptedBytes);
+      } catch (err) {
+        logger.error("Download decryption error: " + err.message);
+        res.status(500).json({ error: "Decryption failed" });
+      }
+    } else {
+      res.setHeader("Content-Length", stat.size);
+      const readStream = fs.createReadStream(filePath);
+      readStream.on("error", (err) => { logger.error("Download stream error: " + err.message); });
+      await pipeline(readStream, res).catch(() => {});
+    }
   });
 
   /* ══════════════════════════════════════════
@@ -1795,7 +1992,7 @@ Your behaviour rules:
       await Promise.all(files.map(async file => {
         const fp = path.join(UPLOADS_DIR, file);
         const stat = await fsPromises.stat(fp).catch(() => null);
-        if (stat && now - stat.mtimeMs > FILE_TTL_MS) {
+        if (stat && stat.isFile() && now - stat.mtimeMs > FILE_TTL_MS) {
           await fsPromises.unlink(fp).catch(() => {});
         }
       }));

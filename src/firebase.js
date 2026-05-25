@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, addDoc, query, where, orderBy, onSnapshot, getDocFromServer, Timestamp } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -7,6 +7,18 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
+
+// Microsoft / Azure AD OAuth provider
+export const microsoftProvider = new OAuthProvider("microsoft.com");
+microsoftProvider.setCustomParameters({
+  prompt: "consent",
+  // tenant: "common" allows personal + work accounts; set to your tenant ID for org-only
+  tenant: "common",
+});
+microsoftProvider.addScope("openid");
+microsoftProvider.addScope("profile");
+microsoftProvider.addScope("email");
+microsoftProvider.addScope("User.Read");
 
 export const OperationType = {
   CREATE: 'create',
