@@ -2030,8 +2030,22 @@ Your behaviour rules:
     }
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath, { maxAge: "7d", etag: true }));
-    app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
+    app.use(express.static(distPath, {
+      maxAge: "1d",
+      etag: true,
+      setHeaders: (res, filePath) => {
+        // Cache built assets and images forever since they are content-hashed
+        if (filePath.includes("assets") || filePath.match(/\.(js|css|webp|png|jpg|jpeg|gif|ico|svg|woff|woff2|json)$/)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      }
+    }));
+    app.get("*", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(path.join(distPath, "index.html"));
+    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {

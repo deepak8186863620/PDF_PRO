@@ -3,23 +3,21 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash } from "lucide-react";
 import FileUpload from "./FileUpload";
-import CameraScanner from "./CameraScanner";
-import PDFPreviewBar, { PDFDocumentPreview } from "./PDFPreviewBar";
-import PDFVisualEditor from "./PDFVisualEditor";
 import ProcessingOverlay from "./ProcessingOverlay";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { auth, db, collection, addDoc, Timestamp, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import React from "react";
 import { trackToolUsage, trackError } from "../lib/analytics";
 
 const ESignTool = React.lazy(() => import("./ESignTool"));
 const CameraScanner = React.lazy(() => import("./CameraScanner"));
 const PDFVisualEditor = React.lazy(() => import("./PDFVisualEditor"));
-// PDFPreviewBar has both default and named exports. We'll lazy load the default export.
 const PDFPreviewBar = React.lazy(() => import("./PDFPreviewBar"));
-import { PDFDocumentPreview } from "./PDFPreviewBar";
-import { trackToolUsage, trackError } from "../lib/analytics";
+const PDFDocumentPreview = React.lazy(() =>
+  import("./PDFPreviewBar").then((module) => ({ default: module.PDFDocumentPreview }))
+);
 
 
 export default function ToolView({ tool, onBack }) {
@@ -771,7 +769,9 @@ export default function ToolView({ tool, onBack }) {
                 tool.id !== "rotate-pdf" &&
                 tool.id !== "edit-pdf" &&
                 tool.id !== "chat-pdf" && (
-                  <PDFDocumentPreview file={files[0]} />
+                  <React.Suspense fallback={<div className="h-24 bg-zinc-900 rounded-2xl animate-pulse"></div>}>
+                    <PDFDocumentPreview file={files[0]} />
+                  </React.Suspense>
                 )}
 
               {(tool.id === "scan-to-pdf" || tool.id === "ocr-pdf") && (

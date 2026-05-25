@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle2, Shield, Zap, Globe, FileText, Lock, Brain, ChevronDown, Sparkles, Loader2 } from "lucide-react";
 import { auth, googleProvider, microsoftProvider, signInWithPopup, signInWithRedirect, getRedirectResult, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { setAnalyticsUser, trackLogin, trackSignUp } from "../lib/analytics";
-import loginPromo from "../assets/login-promo.png";
+import loginPromo from "../assets/login-promo.webp";
 
 import Footer from "./Footer";
 

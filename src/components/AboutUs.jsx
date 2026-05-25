@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare } from "lucide-react";
-import deepakImg from "../assets/deepak.png";
-import deepakRealImg from "../assets/deepak_real.jpeg";
+import deepakImg from "../assets/deepak.webp";
+import deepakRealImg from "../assets/deepak_real.webp";
 
 export default function AboutUs({ onFeedbackClick }) {
   const team = [

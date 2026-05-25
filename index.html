@@ -6,10 +6,20 @@
     <meta name="description" content="PDF Master – Professional PDF and image processing tools. Merge, split, compress, convert, edit, and more. Fast, secure, and free." />
     <meta name="theme-color" content="#080c14" />
 
-    <!-- Preconnect for Google Fonts -->
+    <!-- Preconnect for Google Fonts (must be before font load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap" rel="stylesheet" />
+
+    <!-- Non-render-blocking async font load (media trick eliminates 780ms block) -->
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap" rel="stylesheet" />
+    </noscript>
 
     <!-- Google Analytics GA4
          IMPORTANT:

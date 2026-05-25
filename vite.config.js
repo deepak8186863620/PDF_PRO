@@ -77,5 +77,38 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       include: ['pdfjs-dist'],
     },
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // Firebase — changes rarely, cache forever
+            if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
+              return 'firebase';
+            }
+            // PDF.js — large worker-based renderer, keep separate
+            if (id.includes('node_modules/pdfjs-dist')) {
+              return 'pdf';
+            }
+            // pdf-lib — PDF manipulation, separate from renderer
+            if (id.includes('node_modules/pdf-lib')) {
+              return 'pdf-lib';
+            }
+            // Framer Motion / motion — animation engine
+            if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) {
+              return 'motion';
+            }
+            // React core — must be single instance
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-firebase-hooks')) {
+              return 'react-vendor';
+            }
+            // Lucide icons — tree-shaken but still sizeable
+            if (id.includes('node_modules/lucide-react')) {
+              return 'icons';
+            }
+          },
+        },
+      },
+    },
   };
 });

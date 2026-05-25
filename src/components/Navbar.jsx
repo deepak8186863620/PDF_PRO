@@ -3,7 +3,7 @@ import { FileText, LogIn, LogOut, LayoutDashboard, Menu, X, Grip, Download, Shar
 import { auth, googleProvider, signInWithPopup, signOut, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
-import deepakImg from "../assets/deepak.png";
+import deepakImg from "../assets/deepak.webp";
 
 export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick }) {
   const [user] = useAuthState(auth);
