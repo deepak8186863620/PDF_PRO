@@ -145,14 +145,25 @@ export default function ESignTool({ onBack }) {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!resultFile) return;
-    const link  = document.createElement("a");
-    link.href   = `/api/download/${resultFile.id}`;
-    link.setAttribute("download", resultFile.name || "signed.pdf");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const res = await fetch(`/api/download/${resultFile.id}`);
+      if (!res.ok) throw new Error("Failed to download file");
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", resultFile.name || "signed.pdf");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download the signed document.");
+    }
   };
 
   // ── Saved Signature Card Preview ──

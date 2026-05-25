@@ -16,8 +16,11 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
   const [mode, setMode] = useState("draw");
   const [typedText, setTypedText] = useState("");
   const [font, setFont] = useState(SIG_FONTS[0]);
+  const [rawUploadedImg, setRawUploadedImg] = useState(null);
   const [uploadedImg, setUploadedImg] = useState(null);
+  const [threshold, setThreshold] = useState(160); // Extraction threshold
   const [hasStrokes, setHasStrokes] = useState(false);
+  const [currentDrawDataUrl, setCurrentDrawDataUrl] = useState(null);
 
   // Profile metadata fields
   const [fullName, setFullName]       = useState(prefillName);
@@ -31,6 +34,48 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
 
   useEffect(() => { loadFonts(); }, []);
 
+  // ── Signature Extraction / OCR ──
+  useEffect(() => {
+    if (!rawUploadedImg) {
+      setUploadedImg(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      // Create high-res internal canvas for crisp vector-like extraction
+      const cvs = document.createElement("canvas");
+      cvs.width = img.width;
+      cvs.height = img.height;
+      const ctx = cvs.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      
+      const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+      const data = imgData.data;
+
+      // Extract signature by thresholding: remove paper background, darken ink
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i+3] === 0) continue; // skip already transparent pixels
+        
+        // Calculate grayscale brightness
+        const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+        
+        if (brightness > threshold) {
+          // Turn paper background transparent
+          data[i+3] = 0; 
+        } else {
+          // Convert pen strokes to clean, crisp black (vector-like finish)
+          data[i] = 15;     // R
+          data[i+1] = 23;   // G
+          data[i+2] = 42;   // B
+          data[i+3] = 255;  // Solid alpha
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      setUploadedImg(cvs.toDataURL("image/png"));
+    };
+    img.src = rawUploadedImg;
+  }, [rawUploadedImg, threshold]);
+
   // ── Canvas init ──
   const initCanvas = useCallback(() => {
     const c = canvasRef.current; if (!c) return;
@@ -39,6 +84,7 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
     ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 2.5;
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     setHasStrokes(false);
+    setCurrentDrawDataUrl(null);
   }, []);
 
   useEffect(() => { if (mode === "draw") setTimeout(initCanvas, 60); }, [mode, initCanvas]);
@@ -63,7 +109,13 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
     const ctx = canvasRef.current.getContext("2d");
     ctx.lineTo(pt.x, pt.y); ctx.stroke();
   };
-  const stopDraw = (e) => { e.preventDefault(); isDrawing.current = false; };
+  const stopDraw = (e) => { 
+    e.preventDefault(); 
+    isDrawing.current = false; 
+    if (hasStrokes) {
+      setCurrentDrawDataUrl(canvasRef.current.toDataURL("image/png"));
+    }
+  };
 
   // ── Typed mode render ──
   const renderTyped = useCallback(() => {
@@ -185,7 +237,8 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
   // ── Live preview ──
   const SignatureBlockPreview = () => {
     const rawSig = mode === "upload" ? uploadedImg
-      : (mode === "draw" || mode === "type") ? (canvasRef.current?.toDataURL("image/png") ?? null)
+      : mode === "draw" ? currentDrawDataUrl
+      : mode === "type" ? (typedText ? canvasRef.current?.toDataURL("image/png") : null)
       : null;
 
     return (
@@ -285,16 +338,35 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
         )}
 
         {mode === "upload" && (
-          <label className="mt-4 cursor-pointer flex flex-col items-center gap-3 p-8 border border-dashed border-zinc-700 rounded-2xl hover:border-zinc-500 transition-all block">
-            {uploadedImg
-              ? <img src={uploadedImg} alt="sig" className="max-h-24 object-contain rounded-lg" />
-              : <><Upload size={28} className="text-zinc-500" /><span className="text-zinc-400 text-sm">PNG or JPG (transparent bg works best)</span></>}
-            <input type="file" accept="image/png,image/jpeg" className="hidden"
-              onChange={e => {
-                const f = e.target.files?.[0]; if (!f) return;
-                const r = new FileReader(); r.onload = ev => setUploadedImg(ev.target.result); r.readAsDataURL(f);
-              }} />
-          </label>
+          <div className="mt-4 space-y-4">
+            <label className="cursor-pointer flex flex-col items-center gap-3 p-8 border border-dashed border-zinc-700 rounded-2xl hover:border-zinc-500 transition-all block">
+              {uploadedImg
+                ? <div className="bg-white p-2 rounded-xl border border-zinc-200">
+                    <img src={uploadedImg} alt="sig" className="max-h-24 object-contain" />
+                  </div>
+                : <><Upload size={28} className="text-zinc-500" /><span className="text-zinc-400 text-sm text-center">Take a photo of your signature<br/>or upload an image</span></>}
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const r = new FileReader(); r.onload = ev => setRawUploadedImg(ev.target.result); r.readAsDataURL(f);
+                }} />
+            </label>
+
+            {rawUploadedImg && (
+              <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Extraction Threshold</p>
+                  <p className="text-xs text-violet-400 font-bold">{threshold}</p>
+                </div>
+                <input 
+                  type="range" min="50" max="250" value={threshold} 
+                  onChange={e => setThreshold(Number(e.target.value))}
+                  className="w-full"
+                />
+                <p className="text-[10px] text-zinc-500">Adjust the slider to remove paper background and make strokes crisp.</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
