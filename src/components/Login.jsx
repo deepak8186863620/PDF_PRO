@@ -224,6 +224,8 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
             <img 
               src={loginPromo} 
               alt="PDF Master Premium" 
+              decoding="async"
+              fetchpriority="low"
               className="absolute inset-0 w-full h-full object-cover object-center transform scale-105 hover:scale-100 transition-transform duration-1000 ease-out"
             />
             

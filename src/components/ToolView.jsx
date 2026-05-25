@@ -11,7 +11,14 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { auth, db, collection, addDoc, Timestamp, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import ESignTool from "./ESignTool";
+import { trackToolUsage, trackError } from "../lib/analytics";
+
+const ESignTool = React.lazy(() => import("./ESignTool"));
+const CameraScanner = React.lazy(() => import("./CameraScanner"));
+const PDFVisualEditor = React.lazy(() => import("./PDFVisualEditor"));
+// PDFPreviewBar has both default and named exports. We'll lazy load the default export.
+const PDFPreviewBar = React.lazy(() => import("./PDFPreviewBar"));
+import { PDFDocumentPreview } from "./PDFPreviewBar";
 import { trackToolUsage, trackError } from "../lib/analytics";
 
 
@@ -704,7 +711,9 @@ export default function ToolView({ tool, onBack }) {
         </div>
 
         {tool.id === "esign-pdf" && (
-          <ESignTool onBack={onBack} />
+          <React.Suspense fallback={<div className="p-8 text-center text-zinc-500 text-sm">Loading tool...</div>}>
+            <ESignTool onBack={onBack} />
+          </React.Suspense>
         )}
 
         {tool.id !== "esign-pdf" && (
@@ -779,12 +788,14 @@ export default function ToolView({ tool, onBack }) {
 
               {tool.id === "ocr-pdf" && files.length > 0 && files[0].name?.toLowerCase().endsWith(".pdf") && (
                 <div className="space-y-6">
-                  <PDFPreviewBar 
-                    file={files[0]} 
-                    onSelectionChange={(selected) => setPagesToProcess(selected.join(","))}
-                    title="Select Pages to OCR"
-                    toolId={tool.id}
-                  />
+                  <React.Suspense fallback={<div className="h-24 bg-zinc-900 rounded-2xl animate-pulse"></div>}>
+                    <PDFPreviewBar 
+                      file={files[0]} 
+                      onSelectionChange={(selected) => setPagesToProcess(selected.join(","))}
+                      title="Select Pages to OCR"
+                      toolId={tool.id}
+                    />
+                  </React.Suspense>
                   <p className="max-w-md mx-auto text-[10px] text-zinc-600 italic text-center">
                     Note: If no pages are selected, the entire document will be processed.
                   </p>

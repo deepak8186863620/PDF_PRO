@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import React from "react";
 import ToolCard from "./components/ToolCard";
-import ToolView from "./components/ToolView";
-import Dashboard from "./components/Dashboard";
 import AboutUs from "./components/AboutUs";
 import Login from "./components/Login";
 import FeedbackPage from "./components/FeedbackPage";
+
+const ToolView = React.lazy(() => import("./components/ToolView"));
+const Dashboard = React.lazy(() => import("./components/Dashboard"));
 import TermsOfService from "./components/TermsOfService";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import { TOOLS } from "./constants";
@@ -301,7 +303,9 @@ export default function App() {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.25 }}
               >
-                <ToolView tool={selectedTool} onBack={handleCloseTool} />
+                <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center pt-20"><div className="w-10 h-10 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div></div>}>
+                  <ToolView tool={selectedTool} onBack={handleCloseTool} />
+                </React.Suspense>
               </motion.div>
             ) : view === "dashboard" ? (
               <motion.div
@@ -311,15 +315,17 @@ export default function App() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                <Dashboard 
-                  onNavigateHome={handleHomeClick} 
-                  onSelectTool={(toolId) => {
-                    const tool = TOOLS.find(t => t.id === toolId);
-                    if (tool) {
-                      handleOpenTool(tool);
-                    }
-                  }} 
-                />
+                <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center pt-20"><div className="w-10 h-10 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div></div>}>
+                  <Dashboard 
+                    onNavigateHome={handleHomeClick} 
+                    onSelectTool={(toolId) => {
+                      const tool = TOOLS.find(t => t.id === toolId);
+                      if (tool) {
+                        handleOpenTool(tool);
+                      }
+                    }} 
+                  />
+                </React.Suspense>
               </motion.div>
             ) : view === "about" ? (
               <motion.div
