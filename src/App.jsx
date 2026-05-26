@@ -515,21 +515,21 @@ export default function App() {
                   >
                     <div className="relative group">
                       <div
-                        className="absolute -inset-[1px] rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm"
-                        style={{ background: "linear-gradient(45deg, #3b82f6, #a855f7, #10b981)" }}
+                        className="absolute -inset-[1.5px] rounded-2xl opacity-80 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 blur-[2px]"
+                        style={{ background: "linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #10b981 100%)" }}
                       />
                       <div
-                        className="relative flex items-center rounded-2xl overflow-hidden shadow-2xl"
-                        style={{ background: "#111111", border: "1px solid #2a2a2a" }}
+                        className="relative flex items-center rounded-2xl overflow-hidden shadow-2xl transition-all duration-300"
+                        style={{ background: "#ffffff", border: "1px solid transparent" }}
                       >
-                        <Search className="absolute left-5 text-[#555555] group-focus-within:text-purple-400 transition-colors" size={20} />
+                        <Search className="absolute left-5 text-indigo-500 group-focus-within:text-purple-600 transition-colors" size={20} />
                         <input
                           id="tool-search"
                           type="text"
                           value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
                           placeholder="Search tools – e-sign, compress, OCR..."
-                          className="w-full bg-transparent pl-14 pr-5 py-5 text-white focus:outline-none placeholder:text-[#666666] text-[16px] font-medium"
+                          className="w-full bg-transparent pl-14 pr-5 py-5 text-zinc-900 focus:outline-none placeholder:text-zinc-400 text-[16px] font-semibold"
                         />
                       </div>
                     </div>
