@@ -393,6 +393,11 @@ async function startServer() {
     next();
   });
 
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   /* ══════════════════════════════════════════
      UPLOAD
   ══════════════════════════════════════════ */

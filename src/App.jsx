@@ -377,7 +377,7 @@ export default function App() {
               >
                 <Login 
                   onBack={handleHomeClick} 
-                  onLoginSuccess={handleDashboardClick} 
+                  onLoginSuccess={handleHomeClick} 
                   onAboutClick={handleAboutClick} 
                   onToolClick={handleToolClick} 
                   onContactClick={handleFeedbackClick} 
