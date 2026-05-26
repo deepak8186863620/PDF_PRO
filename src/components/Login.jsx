@@ -145,7 +145,7 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white">
                   <FileText size={20} className="text-black" />
                 </div>
-                <span className="text-xl font-800 text-white tracking-tight">PDF Master</span>
+                <span className="text-xl font-800 text-white tracking-tight">PDF Master Pro AI</span>
               </div>
               
               <h1 className="text-4xl font-800 text-white mb-3 tracking-tight">Welcome back</h1>

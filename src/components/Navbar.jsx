@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { FileText, LogIn, LogOut, LayoutDashboard, Menu, X, Grip, Download, Share, PlusSquare } from "lucide-react";
+import { FileText, LogIn, LogOut, LayoutDashboard, Menu, X, Grip, Download, Share, PlusSquare, Sun, Moon } from "lucide-react";
 import { auth, googleProvider, signInWithPopup, signOut, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
 import deepakImg from "../assets/deepak.webp";
 
-export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick }) {
+export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick, theme, onToggleTheme }) {
   const [user] = useAuthState(auth);
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -92,7 +92,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-[#000000]/90 backdrop-blur-2xl border-b border-white/10 shadow-2xl shadow-black/50"
+          ? "navbar-scrolled backdrop-blur-2xl"
           : "bg-transparent"
       }`}
     >
@@ -112,7 +112,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                 </div>
               </div>
               <div className="flex flex-col items-start leading-none mr-1 sm:mr-2">
-                <span className="text-lg sm:text-xl font-800 text-white tracking-tight truncate">PDF Master</span>
+                <span className="text-lg sm:text-xl font-800 text-white tracking-tight truncate">PDF Master Pro AI</span>
               </div>
             </button>
 
@@ -228,8 +228,15 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
               {serverStatus}
             </div>
 
-            {/* Auth – desktop */}
+            {/* Theme Toggle & Auth – desktop */}
             <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={onToggleTheme}
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-all duration-200"
+                aria-label="Toggle theme"
+              >
+                {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
               {!user ? (
                 <>
                   <button
@@ -278,7 +285,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
 
             {/* Mobile menu toggle */}
             <button
-              className="md:hidden w-9 h-9 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/10 transition-all"
+              className="md:hidden w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/10 transition-all"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -328,7 +335,24 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                 )}
               </div>
 
-              <div className="px-4 pb-4 pt-1 border-t border-white/5">
+              <div className="px-4 pb-4 pt-1 border-t border-white/5 space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-white/5">
+                  <span className="text-zinc-400 text-sm font-600">Theme</span>
+                  <button
+                    onClick={onToggleTheme}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-700 text-white bg-white/10 border border-white/15 hover:bg-white/20 transition-all duration-150"
+                  >
+                    {theme === "light" ? (
+                      <>
+                        <Moon size={14} /> Dark Mode
+                      </>
+                    ) : (
+                      <>
+                        <Sun size={14} /> Light Mode
+                      </>
+                    )}
+                  </button>
+                </div>
                 {!user ? (
                   <button
                     onClick={() => { handleLogin(); closeMobileMenu(); }}

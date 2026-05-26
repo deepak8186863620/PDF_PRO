@@ -32,6 +32,23 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [user, loading] = useAuthState(auth);
+  
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("theme") || "dark";
+  });
+
+  useEffect(() => {
+    if (theme === "light") {
+      document.documentElement.classList.add("light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme(prev => prev === "light" ? "dark" : "light");
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -254,7 +271,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen min-h-[100dvh] font-sans overflow-x-hidden" style={{ background: "#000000" }}>
+      <div className="min-h-screen min-h-[100dvh] font-sans overflow-x-hidden" style={{ background: "var(--bg-primary)", transition: "background 0.3s ease" }}>
         <Toaster
           position="top-center"
           theme="dark"
@@ -273,22 +290,34 @@ export default function App() {
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           {/* Deep gradient base */}
           <div className="absolute inset-0" style={{
-            background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,255,255,0.03) 0%, transparent 60%)"
+            background: theme === "light"
+              ? "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,0.04) 0%, transparent 60%)"
+              : "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,255,255,0.03) 0%, transparent 60%)"
           }} />
           {/* Animated orbs */}
           <div className="orb-1 absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full opacity-100" style={{
-            background: "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
+            background: theme === "light"
+              ? "radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%)"
+              : "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
           }} />
           <div className="orb-2 absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full" style={{
-            background: "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
+            background: theme === "light"
+              ? "radial-gradient(ellipse, rgba(168,85,247,0.05) 0%, transparent 70%)"
+              : "radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%)"
           }} />
           <div className="orb-3 absolute top-[30%] right-[5%] w-[35%] h-[35%] rounded-full" style={{
-            background: "radial-gradient(ellipse, rgba(255,255,255,0.01) 0%, transparent 70%)"
+            background: theme === "light"
+              ? "radial-gradient(ellipse, rgba(16,185,129,0.04) 0%, transparent 70%)"
+              : "radial-gradient(ellipse, rgba(255,255,255,0.01) 0%, transparent 70%)"
           }} />
           {/* Subtle grid */}
-          <div className="absolute inset-0 opacity-[0.025]" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+          <div className="absolute inset-0" style={{
+            opacity: theme === "light" ? 0.04 : 0.025,
+            backgroundImage: theme === "light"
+              ? `linear-gradient(rgba(15,23,42,0.8) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(15,23,42,0.8) 1px, transparent 1px)`
+              : `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
             backgroundSize: "72px 72px"
           }} />
         </div>
@@ -301,6 +330,8 @@ export default function App() {
             onFeedbackClick={handleFeedbackClick}
             onLoginClick={handleLoginClick}
             onBlogClick={handleBlogClick}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
           />
         )}
 

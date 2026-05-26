@@ -695,8 +695,7 @@ export default function ToolView({ tool, onBack }) {
               {tool.features.map((feature, idx) => (
                 <span
                   key={idx}
-                  className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider rounded-full"
-                  style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa", border: "1px solid rgba(255,255,255,0.1)" }}
+                  className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider rounded-full bg-white/5 border border-white/10 text-zinc-400"
                 >
                   {feature}
                 </span>
@@ -705,8 +704,7 @@ export default function ToolView({ tool, onBack }) {
           )}
 
           {tool.proTip && (
-            <div className="mt-6 p-4 rounded-xl max-w-lg mx-auto flex items-start gap-3 text-left"
-              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div className="mt-6 p-4 rounded-xl max-w-lg mx-auto flex items-start gap-3 text-left bg-white/5 border border-white/10">
               <Sparkles className="text-white shrink-0 mt-0.5" size={14} />
               <p className="text-xs text-zinc-400 leading-relaxed">
                 <span className="font-700 uppercase tracking-wider mr-2 text-white">Pro Tip:</span>
@@ -733,9 +731,8 @@ export default function ToolView({ tool, onBack }) {
                 transition={{ duration: 0.25 }}
               >
 
-              <div className="mb-6 max-w-md mx-auto p-5 rounded-2xl"
-                style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <label className="block text-[10px] font-700 uppercase tracking-widest mb-2.5" style={{ color: "#ffffff" }}>
+              <div className="mb-6 max-w-md mx-auto p-5 rounded-2xl bg-zinc-900/70 border border-white/5">
+                <label className="block text-[10px] font-700 uppercase tracking-widest mb-2.5 text-white">
                   Output Filename (Optional)
                 </label>
                 <input
@@ -1020,18 +1017,16 @@ export default function ToolView({ tool, onBack }) {
               )}
 
               {tool.id === "watermark-pdf" && files.length > 0 && (
-                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl"
-                  style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3" style={{ color: "#ffffff" }}>Watermark Text</label>
+                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl bg-zinc-900/70 border border-white/5">
+                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3 text-white">Watermark Text</label>
                   <input type="text" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)}
                     placeholder="Enter watermark text" className="input-field" />
                 </div>
               )}
 
               {tool.id === "page-numbers-pdf" && files.length > 0 && (
-                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl"
-                  style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3" style={{ color: "#ffffff" }}>Page Number Position</label>
+                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl bg-zinc-900/70 border border-white/5">
+                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3 text-white">Page Number Position</label>
                   <select value={pageNumberPosition} onChange={(e) => setPageNumberPosition(e.target.value)}
                     className="input-field">
                     <option value="bottom-center">Bottom Center</option>
@@ -1172,9 +1167,8 @@ export default function ToolView({ tool, onBack }) {
               )}
 
               {(tool.id === "lock-pdf" || tool.id === "unlock-pdf") && files.length > 0 && (
-                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl"
-                  style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3" style={{ color: "#ffffff" }}>
+                <div className="mt-8 max-w-md mx-auto p-5 rounded-2xl bg-zinc-900/70 border border-white/5">
+                  <label className="block text-[10px] font-700 uppercase tracking-widest mb-3 text-white">
                     {tool.id === "lock-pdf" ? "Password to Lock PDF" : "Password to Unlock PDF"}
                   </label>
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
@@ -1204,9 +1198,8 @@ export default function ToolView({ tool, onBack }) {
                     className={`flex items-center gap-2.5 px-8 py-3.5 rounded-full font-700 text-sm transition-all ${
                       files.length > 0
                         ? "btn-primary"
-                        : "cursor-not-allowed text-zinc-600"
+                        : "cursor-not-allowed text-zinc-600 bg-zinc-900/60 border border-white/5"
                     }`}
-                    style={files.length === 0 ? { background: "rgba(24,24,27,0.6)", border: "1px solid rgba(255,255,255,0.05)" } : {}}
                   >
                     <MessageSquare size={16} />
                     Start Chat with PDF
@@ -1222,9 +1215,8 @@ export default function ToolView({ tool, onBack }) {
                     className={`flex items-center gap-2.5 px-8 py-3.5 rounded-full font-700 text-sm transition-all ${
                       files.length > 0
                         ? "btn-primary"
-                        : "cursor-not-allowed text-zinc-600"
+                        : "cursor-not-allowed text-zinc-600 bg-zinc-900/60 border border-white/5"
                     }`}
-                    style={files.length === 0 ? { background: "rgba(24,24,27,0.6)", border: "1px solid rgba(255,255,255,0.05)" } : {}}
                   >
                     <Sparkles size={16} />
                     Process File{files.length > 1 ? "s" : ""}
@@ -1315,12 +1307,10 @@ export default function ToolView({ tool, onBack }) {
               key="summary"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl p-6 md:p-10"
-              style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}
+              className="rounded-2xl p-6 md:p-10 bg-zinc-900/70 border border-white/5"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/5 border border-white/10">
                   {summary ? <Sparkles size={18} className="text-white" /> : <FileText size={18} className="text-white" />}
                 </div>
                 <div className="flex items-center gap-3">
@@ -1368,11 +1358,9 @@ export default function ToolView({ tool, onBack }) {
               key="result"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl p-10 md:p-14 text-center"
-              style={{ background: "rgba(24,24,27,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}
+              className="rounded-2xl p-10 md:p-14 text-center bg-zinc-900/70 border border-white/5"
             >
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 bg-white/5 border border-white/10">
                 <FileCheck size={28} className="text-white" />
               </div>
               <h2 className="text-2xl font-700 text-white mb-2">Your file{resultFile?.files ? "s are" : " is"} ready!</h2>

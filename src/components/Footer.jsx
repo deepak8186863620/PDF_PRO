@@ -20,7 +20,7 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
                 <FileText size={17} className="text-black" />
               </div>
               <div>
-                <span className="text-base font-800 text-white tracking-tight">PDF Master</span>
+                <span className="text-base font-800 text-white tracking-tight">PDF Master Pro AI</span>
                 <p className="text-[9px] font-600 text-zinc-500 tracking-widest uppercase leading-none mt-0.5">Pro Tools</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
           style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
         >
           <p className="text-xs text-zinc-500">
-            © {new Date().getFullYear()} PDF Master. All rights reserved.
+            © {new Date().getFullYear()} PDF Master Pro AI by Deepak Prajapati. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a href="https://pdf-pro-dx2i.onrender.com/" target="_blank" className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-zinc-300 transition-colors">

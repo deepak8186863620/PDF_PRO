@@ -104,7 +104,7 @@ export default function FeedbackPage() {
             YOUR VOICE <br />
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: "linear-gradient(to right, #ffffff, #a1a1aa, #71717a)" }}
+              style={{ backgroundImage: "linear-gradient(to right, var(--text-primary), var(--text-secondary), var(--text-muted))" }}
             >
               MATTERS
             </span>
@@ -244,7 +244,7 @@ export default function FeedbackPage() {
                             size={48}
                             className={`transition-all duration-300 ${
                               star <= (hover || rating)
-                                ? "fill-white text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-110"
+                                ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)] scale-110"
                                 : "text-zinc-700/50 hover:text-zinc-600"
                             }`}
                           />
