@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pdf-pro-dx2i.onrender.com/sitemap.xml

@@ -7,7 +7,7 @@ const SOCIAL_LINKS = [
   { icon: Mail, label: "Email", href: "#" },
 ];
 
-export default function Footer({ onAboutClick, onToolClick, onContactClick, onTermsClick, onPrivacyClick }) {
+export default function Footer({ onAboutClick, onToolClick, onContactClick, onTermsClick, onPrivacyClick, onBlogClick }) {
   return (
     <footer className="relative z-20 border-t pt-16 pb-10 px-4 sm:px-6" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.92)", isolation: "isolate" }}>
       <div className="max-w-[1600px] mx-auto">
@@ -101,6 +101,14 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
                   About Us
                 </button>
               </li>
+              <li>
+                <button
+                  onClick={(e) => { e.preventDefault(); if (onBlogClick) onBlogClick(); }}
+                  className="text-sm text-zinc-500 hover:text-white transition-colors duration-200 text-left cursor-pointer"
+                >
+                  Blog & Guides
+                </button>
+              </li>
               {["Privacy Policy", "Terms of Service", "Contact"].map(item => {
                 let onClickHandler = (e) => e.preventDefault();
                 if (item === "Contact") onClickHandler = (e) => { e.preventDefault(); if (onContactClick) onContactClick(); };
@@ -118,6 +126,15 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
                   </li>
                 );
               })}
+              <li>
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  className="text-sm text-zinc-500 hover:text-white transition-colors duration-200 text-left cursor-pointer"
+                >
+                  Sitemap
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -187,10 +204,15 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
           <p className="text-xs text-zinc-500">
             © {new Date().getFullYear()} PDF Master. All rights reserved.
           </p>
-          <p className="text-xs text-zinc-500 flex items-center gap-1.5">
-            Made with <Heart size={11} className="text-red-500 fill-red-500" /> by{" "}
-            <span className="text-zinc-300 font-600">Deepak Prajapati & Team</span>
-          </p>
+          <div className="flex items-center gap-4">
+            <a href="https://pdf-pro-dx2i.onrender.com/" target="_blank" className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-zinc-300 transition-colors">
+              <Sparkles size={12} className="text-purple-400" /> Made with PDF Pro
+            </a>
+            <p className="text-xs text-zinc-500 flex items-center gap-1.5">
+              Made with <Heart size={11} className="text-red-500 fill-red-500" /> by{" "}
+              <span className="text-zinc-300 font-600">Deepak Prajapati & Team</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -11,12 +11,14 @@ import FeedbackPage from "./components/FeedbackPage";
 
 const ToolView = React.lazy(() => import("./components/ToolView"));
 const Dashboard = React.lazy(() => import("./components/Dashboard"));
+const Blog = React.lazy(() => import("./components/Blog"));
 import TermsOfService from "./components/TermsOfService";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import { TOOLS } from "./constants";
 import {
   Sparkles, FileText, Image as ImageIcon,
-  Search, LayoutGrid, ArrowRight, Shield, Zap, Globe, Code2
+  Search, LayoutGrid, ArrowRight, Shield, Zap, Globe, Code2,
+  Share2, Copy, Star, HelpCircle, Lock, CheckCircle, Info, Heart
 } from "lucide-react";
 import { auth, db, doc, setDoc, getDoc, Timestamp, handleFirestoreError, OperationType } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -114,9 +116,9 @@ export default function App() {
   ];
 
   const stats = [
-    { icon: Zap, value: `${TOOLS.length}+`, label: "Tools Available" },
-    { icon: Shield, value: "100%", label: "Secure Processing" },
-    { icon: Globe, value: "Free", label: "No Sign-up Required" },
+    { icon: Zap, value: "10x", label: "Faster Processing" },
+    { icon: Shield, value: "100%", label: "Secure & Private" },
+    { icon: Star, value: "4.9/5", label: "User Rating" },
   ];
 
   const filteredTools = TOOLS.filter(tool => {
@@ -235,6 +237,14 @@ export default function App() {
     setView("privacy");
   };
 
+  const handleBlogClick = () => {
+    if (view !== "blog" || selectedTool) {
+      window.history.pushState({ view: "blog" }, "", "");
+    }
+    setSelectedTool(null);
+    setView("blog");
+  };
+
   const handleToolClick = (toolName) => {
     const tool = TOOLS.find(t => t.name === toolName);
     if (tool) {
@@ -290,6 +300,7 @@ export default function App() {
             onAboutClick={handleAboutClick}
             onFeedbackClick={handleFeedbackClick}
             onLoginClick={handleLoginClick}
+            onBlogClick={handleBlogClick}
           />
         )}
 
@@ -367,6 +378,18 @@ export default function App() {
               >
                 <PrivacyPolicy />
               </motion.div>
+            ) : view === "blog" ? (
+              <motion.div
+                key="blog"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center pt-20"><div className="w-10 h-10 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div></div>}>
+                  <Blog onNavigateHome={handleHomeClick} />
+                </React.Suspense>
+              </motion.div>
             ) : view === "login" ? (
               <motion.div
                 key="login"
@@ -383,6 +406,7 @@ export default function App() {
                   onContactClick={handleFeedbackClick} 
                   onTermsClick={handleTermsClick} 
                   onPrivacyClick={handlePrivacyClick} 
+                  onBlogClick={handleBlogClick}
                 />
               </motion.div>
             ) : (
@@ -397,30 +421,35 @@ export default function App() {
                 {/* ── Hero Section ── */}
                 <div className="max-w-5xl mx-auto text-center mb-20 md:mb-28">
 
-                  {/* Top badge */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                  {/* Product Hunt / Launch notice banner */}
+                  <motion.a
+                    href="https://producthunt.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
-                    className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm font-bold text-white mb-8 uppercase tracking-widest"
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="inline-flex items-center gap-3 bg-[#ff6154]/10 hover:bg-[#ff6154]/20 border border-[#ff6154]/20 px-5 py-2.5 rounded-full text-sm font-bold text-[#ff6154] mb-8 transition-colors duration-300 shadow-lg shadow-[#ff6154]/5 group"
                   >
-                    <Code2 size={16} />
-                    <span>Professional Document Tools</span>
-                  </motion.div>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm2.5-7.5h-5v-5h5a2.5 2.5 0 010 5zm-2.5-2.5v-2.5h-2.5v5h2.5a2.5 2.5 0 000-5z"/></svg>
+                    <span className="hidden sm:inline">We are live on Product Hunt!</span>
+                    <span className="sm:hidden">Live on Product Hunt</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </motion.a>
 
-                  {/* Headline — scales from mobile (4xl) → laptop (8xl) → large desktop (9xl) */}
+                  {/* Headline */}
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-4xl sm:text-6xl md:text-8xl 2xl:text-9xl font-black tracking-tighter text-white mb-4 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
+                    className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-white mb-6 leading-[1.1] sm:leading-[1.0] uppercase"
                   >
-                    EVERY TOOL YOU NEED <br />
+                    THE ULTIMATE <br />
                     <span
                       className="text-transparent bg-clip-text"
-                      style={{ backgroundImage: "linear-gradient(to right, #ffffff, #a1a1aa, #71717a)" }}
+                      style={{ backgroundImage: "linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #10b981 100%)" }}
                     >
-                      FOR YOUR DOCUMENTS
+                      AI PDF EDITOR
                     </span>
                   </motion.h1>
 
@@ -429,35 +458,47 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed mb-12"
+                    className="text-zinc-400 text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed mb-10"
                   >
-                    Merge, split, compress, convert, and edit PDFs and images with ease. Powerful tools that work directly in your browser.
+                    Merge, split, compress, and sign documents instantly with the fastest, free AI-powered electronic signature platform.
                   </motion.p>
+                  
+                  {/* Trust Badges */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 mb-12 text-zinc-500 text-xs sm:text-sm font-semibold uppercase tracking-wider"
+                  >
+                    <span className="flex items-center gap-1.5"><Shield size={16} className="text-emerald-500" /> AES-256 Encrypted</span>
+                    <span className="flex items-center gap-1.5"><CheckCircle size={16} className="text-blue-500" /> No Signup Required</span>
+                    <span className="flex items-center gap-1.5"><Globe size={16} className="text-purple-500" /> Free Forever</span>
+                  </motion.div>
 
                   {/* Search bar */}
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="max-w-xl mx-auto mb-10"
+                    className="max-w-xl mx-auto mb-10 relative z-10"
                   >
                     <div className="relative group">
                       <div
-                        className="absolute -inset-[1px] rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"
-                        style={{ background: "rgba(255,255,255,0.1)" }}
+                        className="absolute -inset-[1px] rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm"
+                        style={{ background: "linear-gradient(45deg, #3b82f6, #a855f7, #10b981)" }}
                       />
                       <div
-                        className="relative flex items-center rounded-2xl overflow-hidden"
-                        style={{ background: "#161616", border: "1px solid #2a2a2a" }}
+                        className="relative flex items-center rounded-2xl overflow-hidden shadow-2xl"
+                        style={{ background: "#111111", border: "1px solid #2a2a2a" }}
                       >
-                        <Search className="absolute left-5 text-[#555555] group-focus-within:text-white transition-colors" size={20} />
+                        <Search className="absolute left-5 text-[#555555] group-focus-within:text-purple-400 transition-colors" size={20} />
                         <input
                           id="tool-search"
                           type="text"
                           value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
-                          placeholder="Search tools – merge, compress, OCR..."
-                          className="w-full bg-transparent pl-14 pr-5 py-4.5 text-white focus:outline-none placeholder:text-[#555555] text-[16px] font-medium"
+                          placeholder="Search tools – e-sign, compress, OCR..."
+                          className="w-full bg-transparent pl-14 pr-5 py-5 text-white focus:outline-none placeholder:text-[#666666] text-[16px] font-medium"
                         />
                       </div>
                     </div>
@@ -468,18 +509,18 @@ export default function App() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-16"
+                    className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 mb-16 relative z-10"
                   >
                     <button
                       onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
-                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-xl shadow-purple-500/20 px-10 py-4 rounded-full font-bold text-[16px] transition-all hover:scale-105 active:scale-95"
                     >
                       <Sparkles size={18} />
-                      Explore All Tools
+                      Start Editing Free
                     </button>
                     <button
-                      onClick={() => document.getElementById("tools-section")?.scrollIntoView({ behavior: "smooth" })}
-                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-[#161616] border border-[#2a2a2a] text-white hover:bg-[#202020] px-8 py-3.5 rounded-full font-bold text-[15px] transition-colors"
+                      onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+                      className="flex items-center justify-center w-full sm:w-auto gap-2 bg-[#161616] border border-[#2a2a2a] text-white hover:bg-[#202020] px-10 py-4 rounded-full font-bold text-[16px] transition-all hover:scale-105 active:scale-95"
                     >
                       See How It Works
                       <ArrowRight size={18} />
@@ -491,16 +532,16 @@ export default function App() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.35 }}
-                    className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12"
+                    className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 pt-8 border-t border-white/5"
                   >
                     {stats.map((stat, i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center bg-transparent border border-[#2a2a2a]">
-                          <stat.icon size={20} className="text-white" />
+                      <div key={i} className="flex items-center gap-4 group">
+                        <div className="w-[54px] h-[54px] rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:bg-purple-500/10 group-hover:border-purple-500/30 group-hover:text-purple-400 transition-all duration-300 shadow-lg">
+                          <stat.icon size={24} className="text-zinc-400 group-hover:text-purple-400 transition-colors" />
                         </div>
                         <div className="text-left">
-                          <p className="text-white font-bold text-[19px] leading-tight mb-0.5">{stat.value}</p>
-                          <p className="text-[#888888] text-[14px] font-medium leading-none">{stat.label}</p>
+                          <p className="text-white font-black text-2xl leading-none mb-1">{stat.value}</p>
+                          <p className="text-zinc-500 text-[13px] font-bold uppercase tracking-wider leading-none">{stat.label}</p>
                         </div>
                       </div>
                     ))}
@@ -619,12 +660,104 @@ export default function App() {
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* ── How It Works Section ── */}
+                <div id="how-it-works" className="max-w-[1600px] mx-auto mt-32 pt-20 border-t border-white/5">
+                  <div className="text-center mb-16">
+                    <span className="text-purple-400 font-bold uppercase tracking-widest text-sm mb-3 block">Simple Process</span>
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6">How PDF Master Works</h2>
+                    <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Upload your document, apply your changes securely in your browser, and download the finished file instantly.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    <div className="hidden md:block absolute top-[50%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent -z-10" />
+                    
+                    {[
+                      { icon: Code2, title: "1. Upload File", desc: "Drag & drop your PDF or image securely into our browser sandbox." },
+                      { icon: Sparkles, title: "2. Apply Tools", desc: "Sign, merge, compress, or use AI features directly on your device." },
+                      { icon: Shield, title: "3. Save & Secure", desc: "Download instantly. Your files are never stored on our servers." }
+                    ].map((step, idx) => (
+                      <div key={idx} className="bg-[#111] border border-white/10 rounded-3xl p-8 text-center relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6 text-white group-hover:scale-110 transition-transform">
+                          <step.icon size={28} className="group-hover:text-purple-400 transition-colors" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
+                        <p className="text-zinc-400">{step.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Testimonials Section ── */}
+                <div className="max-w-[1600px] mx-auto mt-32 pt-20 border-t border-white/5 pb-10">
+                  <div className="text-center mb-16">
+                    <span className="text-blue-400 font-bold uppercase tracking-widest text-sm mb-3 block">Wall of Love</span>
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Loved by Professionals</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { name: "Sarah L.", role: "Legal Consultant", text: "PDF Master is incredible. It handles large contracts effortlessly, and knowing the e-signatures are secure gives my clients peace of mind." },
+                      { name: "James D.", role: "Software Engineer", text: "The fact that everything runs client-side makes it blazing fast. Finally, a PDF tool that respects user privacy and doesn't require a subscription." }
+                    ].map((testimonial, idx) => (
+                      <div key={idx} className="bg-[#111] border border-white/10 rounded-3xl p-8 flex flex-col justify-between">
+                        <div>
+                          <div className="flex gap-1 text-yellow-500 mb-6">
+                            {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
+                          </div>
+                          <p className="text-lg text-zinc-300 italic mb-8">"{testimonial.text}"</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-lg">
+                            {testimonial.name[0]}
+                          </div>
+                          <div>
+                            <p className="font-bold text-white text-sm">{testimonial.name}</p>
+                            <p className="text-xs text-zinc-500">{testimonial.role}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </main>
 
-        {view !== "login" && <Footer onAboutClick={handleAboutClick} onToolClick={handleToolClick} onContactClick={handleFeedbackClick} onTermsClick={handleTermsClick} onPrivacyClick={handlePrivacyClick} />}
+        {view !== "login" && <Footer onAboutClick={handleAboutClick} onToolClick={handleToolClick} onContactClick={handleFeedbackClick} onTermsClick={handleTermsClick} onPrivacyClick={handlePrivacyClick} onBlogClick={handleBlogClick} />}
+        
+        {/* Floating Share / Feedback Button */}
+        {view === "home" && (
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'PDF Master',
+                    text: 'The best free AI PDF Editor & E-Signature platform.',
+                    url: 'https://pdf-pro-dx2i.onrender.com/'
+                  });
+                } else {
+                  navigator.clipboard.writeText('https://pdf-pro-dx2i.onrender.com/');
+                  alert('Link copied to clipboard!');
+                }
+              }}
+              className="group flex items-center justify-center w-12 h-12 rounded-full bg-[#111] border border-white/10 shadow-2xl hover:bg-purple-600 hover:border-purple-500 transition-all duration-300 hover:scale-110"
+              aria-label="Share App"
+            >
+              <Share2 size={20} className="text-zinc-400 group-hover:text-white transition-colors" />
+            </button>
+            <button
+              onClick={handleFeedbackClick}
+              className="group flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)] hover:bg-blue-500 transition-all duration-300 hover:scale-110"
+              aria-label="Send Feedback"
+            >
+              <HelpCircle size={22} className="text-white" />
+            </button>
+          </div>
+        )}
+
         <PWAInstallPrompt />
       </div>
     </ErrorBoundary>

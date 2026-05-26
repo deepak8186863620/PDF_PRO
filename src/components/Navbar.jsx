@@ -5,7 +5,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
 import deepakImg from "../assets/deepak.webp";
 
-export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick }) {
+export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick }) {
   const [user] = useAuthState(auth);
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -83,9 +83,9 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
 
   const navLinks = [
     { label: "HOME PAGE", action: onHomeClick },
-    { label: "SPLIT PDF", action: onHomeClick },
     { label: "ABOUT US", action: onAboutClick },
     { label: "FEEDBACK", action: onFeedbackClick },
+    { label: "BLOG & HELP", action: onBlogClick },
   ];
 
   return (
