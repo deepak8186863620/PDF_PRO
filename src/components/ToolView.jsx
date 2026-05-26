@@ -678,8 +678,8 @@ export default function ToolView({ tool, onBack }) {
         <div className="text-center mb-10 md:mb-14">
           {/* Icon — uses colorStyle (inline) to prevent Tailwind purge on desktop builds */}
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-white shadow-lg"
-            style={tool.colorStyle || undefined}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg"
+            style={{ ...(tool.colorStyle || {}), color: '#ffffff' }}
           >
             {!tool.colorStyle && (
               <span className={`absolute inset-0 rounded-2xl ${tool.color}`} aria-hidden="true" />

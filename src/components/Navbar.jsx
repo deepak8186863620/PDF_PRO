@@ -232,10 +232,10 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
             <div className="hidden md:flex items-center gap-6">
               <button
                 onClick={onToggleTheme}
-                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-all duration-200"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors duration-200"
                 aria-label="Toggle theme"
               >
-                {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+                {theme === "light" ? <Moon size={17} strokeWidth={2} /> : <Sun size={17} strokeWidth={2} />}
               </button>
               {!user ? (
                 <>

@@ -21,14 +21,14 @@ export default function ToolCard({ name, description, icon: Icon, color, colorSt
            * falls back to Tailwind class string. Inline style is immune to purging.
            */}
           <div
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-white flex-shrink-0"
-            style={colorStyle || undefined}
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ ...(colorStyle || {}), color: '#ffffff' }}
           >
             {!colorStyle && (
               // Fallback: render a wrapper with the Tailwind class when no inline style
               <span className={`absolute inset-0 rounded-xl sm:rounded-2xl ${color}`} aria-hidden="true" />
             )}
-            <Icon size={20} className="sm:w-[26px] sm:h-[26px] opacity-90 relative z-10" />
+            <Icon size={20} className="sm:w-[26px] sm:h-[26px] relative z-10" />
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
