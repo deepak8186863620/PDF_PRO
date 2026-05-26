@@ -10,7 +10,7 @@ const SOCIAL_LINKS = [
 export default function Footer({ onAboutClick, onToolClick, onContactClick, onTermsClick, onPrivacyClick }) {
   return (
     <footer className="relative z-20 border-t pt-16 pb-10 px-4 sm:px-6" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.92)", isolation: "isolate" }}>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1600px] mx-auto">
 
         <div className="grid grid-cols-2 md:grid-cols-6 gap-10 mb-14">
           {/* Brand column */}

@@ -244,7 +244,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-[100dvh] font-sans overflow-x-hidden" style={{ background: "#000000" }}>
+      <div className="min-h-screen min-h-[100dvh] font-sans overflow-x-hidden" style={{ background: "#000000" }}>
         <Toaster
           position="top-center"
           theme="dark"
@@ -392,7 +392,7 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="pt-24 sm:pt-28 md:pt-36 pb-24 px-4 sm:px-6"
+                className="pt-24 sm:pt-28 md:pt-36 pb-24 px-4 sm:px-6 lg:px-8"
               >
                 {/* ── Hero Section ── */}
                 <div className="max-w-5xl mx-auto text-center mb-20 md:mb-28">
@@ -408,15 +408,18 @@ export default function App() {
                     <span>Professional Document Tools</span>
                   </motion.div>
 
-                  {/* Headline */}
+                  {/* Headline — scales from mobile (4xl) → laptop (8xl) → large desktop (9xl) */}
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter text-white mb-4 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
+                    className="text-4xl sm:text-6xl md:text-8xl 2xl:text-9xl font-black tracking-tighter text-white mb-4 sm:mb-8 leading-[1.1] sm:leading-[0.9] uppercase"
                   >
                     EVERY TOOL YOU NEED <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-500">
+                    <span
+                      className="text-transparent bg-clip-text"
+                      style={{ backgroundImage: "linear-gradient(to right, #ffffff, #a1a1aa, #71717a)" }}
+                    >
                       FOR YOUR DOCUMENTS
                     </span>
                   </motion.h1>
@@ -505,7 +508,7 @@ export default function App() {
                 </div>
 
                 {/* ── Tools Section ── */}
-                <div id="tools-section" className="max-w-7xl mx-auto scroll-mt-28">
+                <div id="tools-section" className="max-w-[1600px] mx-auto scroll-mt-28">
 
                   {/* Category tabs */}
                   <div className="flex items-center justify-center mb-16">
@@ -569,8 +572,8 @@ export default function App() {
                                 </span>
                               </div>
 
-                              {/* Tool grid */}
-                              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 xl:gap-8">
+                              {/* Tool grid — 2 columns on mobile, 3 on laptop, 4 on wide desktop */}
+                              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 xl:gap-6">
                                 {tools.map((tool, idx) => (
                                   <motion.div
                                     key={tool.id}

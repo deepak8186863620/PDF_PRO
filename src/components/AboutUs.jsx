@@ -44,7 +44,10 @@ export default function AboutUs({ onFeedbackClick }) {
             className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[0.9]"
           >
             WE BUILD TOOLS <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-500">
+            <span
+              className="text-transparent bg-clip-text"
+              style={{ backgroundImage: "linear-gradient(to right, #ffffff, #a1a1aa, #71717a)" }}
+            >
               FOR THE FUTURE
             </span>
           </motion.h1>

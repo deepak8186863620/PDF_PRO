@@ -6,8 +6,24 @@
 }
 
 @layer base {
+  /*
+   * ── CROSS-BROWSER / CROSS-SCREEN FIX ──────────────────────────────────
+   * 1. color-scheme: dark   → prevents Windows & macOS from overriding our
+   *    custom colors with system "light" defaults (the black-icon bug).
+   * 2. -webkit-text-size-adjust   → stops iOS/Safari from auto-zooming text,
+   *    which shifts layouts on phones.
+   * 3. Explicit min-height fallback for browsers that don't support dvh.
+   */
+  :root {
+    color-scheme: dark;
+  }
+
   html {
     scroll-behavior: smooth;
+    /* Prevent font inflation on mobile (iOS Safari, Android WebView) */
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -16,12 +32,139 @@
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Ensure body fills full viewport height on all devices */
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
   ::selection {
     background-color: rgba(255, 255, 255, 0.2);
     color: #ffffff;
   }
+
+  /* Images: block + full-width prevents overflow and layout shift.
+   * NOTE: We do NOT set svg { display: block } here — Lucide icons render as
+   * inline SVGs inside buttons/spans, and forcing them block breaks icon alignment. */
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* Better tap/click targets for mobile — minimum 44px */
+  button, a {
+    min-height: 0; /* allow small buttons to stay small visually */
+  }
+}
+
+/*
+ * ── EXPLICIT FONT-WEIGHT UTILITIES ─────────────────────────────────────
+ * Tailwind v4 may not generate font-500, font-600, font-700, font-800
+ * classes by default. These are used throughout the app (Navbar, Footer,
+ * Dashboard, etc). Without these, text appears normal-weight on some
+ * desktop builds, causing the "washed out / no color" appearance.
+ */
+@layer utilities {
+  .font-400 { font-weight: 400; }
+  .font-500 { font-weight: 500; }
+  .font-600 { font-weight: 600; }
+  .font-700 { font-weight: 700; }
+  .font-800 { font-weight: 800; }
+  .font-900 { font-weight: 900; }
+
+  /*
+   * ── DYNAMIC GRADIENT SAFELIST ──────────────────────────────────────────
+   * Tool icon colors in constants.jsx are dynamic string values
+   * (e.g. "bg-gradient-to-br from-emerald-400 to-emerald-600").
+   * Tailwind's content scanner can't detect these in runtime strings,
+   * so they risk being purged. These rules force them to stay in CSS.
+   *
+   * IMPORTANT: Do NOT remove these — they fix the "black icons on desktop" bug.
+   */
+
+  /* ── Direction ── */
+  .bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+  .bg-gradient-to-r  { background-image: linear-gradient(to right,        var(--tw-gradient-stops)); }
+  .bg-gradient-to-b  { background-image: linear-gradient(to bottom,       var(--tw-gradient-stops)); }
+
+  /* ── From colors used in TOOLS constants ── */
+  .from-emerald-400 { --tw-gradient-from: #34d399; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(52 211 153 / 0)); }
+  .from-emerald-500 { --tw-gradient-from: #10b981; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(16 185 129 / 0)); }
+  .from-red-500     { --tw-gradient-from: #ef4444; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(239 68 68 / 0)); }
+  .from-red-600     { --tw-gradient-from: #dc2626; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(220 38 38 / 0)); }
+  .from-amber-400   { --tw-gradient-from: #fbbf24; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(251 191 36 / 0)); }
+  .from-indigo-500  { --tw-gradient-from: #6366f1; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(99 102 241 / 0)); }
+  .from-indigo-600  { --tw-gradient-from: #4f46e5; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(79 70 229 / 0)); }
+  .from-blue-500    { --tw-gradient-from: #3b82f6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(59 130 246 / 0)); }
+  .from-blue-600    { --tw-gradient-from: #2563eb; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(37 99 235 / 0)); }
+  .from-green-500   { --tw-gradient-from: #22c55e; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(34 197 94 / 0)); }
+  .from-green-600   { --tw-gradient-from: #16a34a; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(22 163 74 / 0)); }
+  .from-sky-400     { --tw-gradient-from: #38bdf8; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(56 189 248 / 0)); }
+  .from-orange-400  { --tw-gradient-from: #fb923c; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(251 146 60 / 0)); }
+  .from-orange-500  { --tw-gradient-from: #f97316; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(249 115 22 / 0)); }
+  .from-orange-600  { --tw-gradient-from: #ea580c; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(234 88 12 / 0)); }
+  .from-lime-500    { --tw-gradient-from: #84cc16; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(132 204 22 / 0)); }
+  .from-violet-500  { --tw-gradient-from: #8b5cf6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(139 92 246 / 0)); }
+  .from-purple-400  { --tw-gradient-from: #c084fc; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(192 132 252 / 0)); }
+  .from-purple-500  { --tw-gradient-from: #a855f7; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(168 85 247 / 0)); }
+  .from-purple-600  { --tw-gradient-from: #9333ea; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(147 51 234 / 0)); }
+  .from-pink-400    { --tw-gradient-from: #f472b6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(244 114 182 / 0)); }
+  .from-teal-400    { --tw-gradient-from: #2dd4bf; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(45 212 191 / 0)); }
+  .from-cyan-400    { --tw-gradient-from: #22d3ee; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(34 211 238 / 0)); }
+  .from-zinc-400    { --tw-gradient-from: #a1a1aa; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(161 161 170 / 0)); }
+  .from-zinc-500    { --tw-gradient-from: #71717a; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(113 113 122 / 0)); }
+  .from-zinc-700    { --tw-gradient-from: #3f3f46; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(63 63 70 / 0)); }
+  .from-slate-600   { --tw-gradient-from: #475569; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(71 85 105 / 0)); }
+  .from-fuchsia-500 { --tw-gradient-from: #d946ef; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(217 70 239 / 0)); }
+  .from-rose-500    { --tw-gradient-from: #f43f5e; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(244 63 94 / 0)); }
+
+  /* ── To colors ── */
+  .to-emerald-600   { --tw-gradient-to: #059669; }
+  .to-emerald-700   { --tw-gradient-to: #047857; }
+  .to-rose-700      { --tw-gradient-to: #be123c; }
+  .to-orange-600    { --tw-gradient-to: #ea580c; }
+  .to-orange-700    { --tw-gradient-to: #c2410c; }
+  .to-blue-600      { --tw-gradient-to: #2563eb; }
+  .to-blue-700      { --tw-gradient-to: #1d4ed8; }
+  .to-indigo-800    { --tw-gradient-to: #3730a3; }
+  .to-green-700     { --tw-gradient-to: #15803d; }
+  .to-green-800     { --tw-gradient-to: #166534; }
+  .to-blue-600      { --tw-gradient-to: #2563eb; }
+  .to-sky-600       { --tw-gradient-to: #0284c7; }
+  .to-red-700       { --tw-gradient-to: #b91c1c; }
+  .to-red-800       { --tw-gradient-to: #991b1b; }
+  .to-purple-700    { --tw-gradient-to: #7e22ce; }
+  .to-purple-800    { --tw-gradient-to: #6b21a8; }
+  .to-violet-800    { --tw-gradient-to: #5b21b6; }
+  .to-fuchsia-600   { --tw-gradient-to: #c026d3; }
+  .to-indigo-700    { --tw-gradient-to: #4338ca; }
+  .to-indigo-800    { --tw-gradient-to: #3730a3; }
+  .to-pink-500      { --tw-gradient-to: #ec4899; }
+  .to-pink-600      { --tw-gradient-to: #db2777; }
+  .to-rose-600      { --tw-gradient-to: #e11d48; }
+  .to-cyan-600      { --tw-gradient-to: #0891b2; }
+  .to-teal-600      { --tw-gradient-to: #0d9488; }
+  .to-zinc-600      { --tw-gradient-to: #52525b; }
+  .to-zinc-700      { --tw-gradient-to: #3f3f46; }
+  .to-zinc-900      { --tw-gradient-to: #18181b; }
+  .to-slate-800     { --tw-gradient-to: #1e293b; }
+  .to-lime-600      { --tw-gradient-to: #65a30d; }
+  .to-green-600     { --tw-gradient-to: #16a34a; }
+  .to-amber-600     { --tw-gradient-to: #d97706; }
+  .to-indigo-500    { --tw-gradient-to: #6366f1; }
+
+  /* ── Dashboard quick-tool gradients (via classes) ── */
+  .from-indigo-500.via-purple-500 { --tw-gradient-stops: #6366f1, #a855f7, var(--tw-gradient-to, transparent); }
+  .from-emerald-400.via-teal-500  { --tw-gradient-stops: #34d399, #14b8a6, var(--tw-gradient-to, transparent); }
+  .from-orange-500.via-rose-500   { --tw-gradient-stops: #f97316, #f43f5e, var(--tw-gradient-to, transparent); }
+  .from-blue-500.via-indigo-500   { --tw-gradient-stops: #3b82f6, #6366f1, var(--tw-gradient-to, transparent); }
+  .from-fuchsia-500.via-purple-600 { --tw-gradient-stops: #d946ef, #9333ea, var(--tw-gradient-to, transparent); }
+  .from-cyan-400.via-blue-500     { --tw-gradient-stops: #22d3ee, #3b82f6, var(--tw-gradient-to, transparent); }
+
+  /* Force bg-clip-text to always work */
+  .bg-clip-text { -webkit-background-clip: text; background-clip: text; }
+  .text-transparent { color: transparent; }
 }
 
 /* ── Custom Scrollbar ── */
@@ -201,4 +344,82 @@ input[type="range"]::-webkit-slider-thumb:hover {
   border-radius: 0.375rem;
   font-size: 0.85em;
   color: #ffffff;
+}
+
+/* ── iPhone notch / safe area inset padding ── */
+/*
+ * On iPhone X and later (and any phone with a notch or home indicator),
+ * content can be hidden behind the notch at top or the bar at the bottom.
+ * env(safe-area-inset-*) provides the correct padding so nothing is cut off.
+ */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.px-safe {
+  padding-left:  env(safe-area-inset-left,  0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ── Scrollbar hide (used in Dashboard horizontal scroll) ── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Large-screen (1440px+) layout clamps ── */
+/*
+ * On very large 4K/2K monitors, text can look too big or layout can stretch
+ * uncomfortably. These clamp the main content width so nothing looks broken.
+ */
+@media (min-width: 1920px) {
+  .max-w-\[1600px\] {
+    max-width: min(1600px, 92vw);
+  }
+}
+
+/* ── Reduce motion: disable all animations for users who prefer it ── */
+/*
+ * Some Windows/PC users have "reduce animations" on in their OS settings.
+ * Without this rule, framer-motion animations still fire and can look glitchy.
+ * This CSS makes the browser force-disable them gracefully.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .orb-1, .orb-2, .orb-3, .glow-pulse {
+    animation: none !important;
+  }
+}
+
+/* ── Focus-visible ring (keyboard navigation) ── */
+/*
+ * Desktop users often use Tab to navigate. This adds a visible ring
+ * only for keyboard navigation (not mouse clicks), which is both
+ * accessible and keeps the design clean for mouse users.
+ */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Minimum touch target size for mobile ── */
+/*
+ * iOS and Android guidelines require interactive elements to be at least
+ * 44×44px for reliable tapping. This applies a minimum hit area without
+ * changing the visual size.
+ */
+.touch-target {
+  position: relative;
+}
+.touch-target::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }

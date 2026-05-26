@@ -665,7 +665,7 @@ export default function ToolView({ tool, onBack }) {
   };
 
   return (
-    <div className="min-h-[100dvh] pt-24 md:pt-32 pb-24 px-4 md:px-6">
+    <div className="min-h-screen min-h-[100dvh] pt-24 md:pt-32 pb-24 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
         <button
           onClick={onBack}
@@ -676,11 +676,19 @@ export default function ToolView({ tool, onBack }) {
         </button>
 
         <div className="text-center mb-10 md:mb-14">
-          <div className={`${tool.color} w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-white shadow-lg`}>
-            <tool.icon size={24} />
+          {/* Icon — uses colorStyle (inline) to prevent Tailwind purge on desktop builds */}
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-white shadow-lg"
+            style={tool.colorStyle || undefined}
+          >
+            {!tool.colorStyle && (
+              <span className={`absolute inset-0 rounded-2xl ${tool.color}`} aria-hidden="true" />
+            )}
+            <tool.icon size={24} className="relative z-10" />
           </div>
           <h1 className="text-3xl md:text-4xl font-800 text-white mb-3 tracking-tight">{tool.name}</h1>
           <p className="text-zinc-400 text-base max-w-lg mx-auto mb-6 leading-relaxed">{tool.description}</p>
+
 
           {tool.features && (
             <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">

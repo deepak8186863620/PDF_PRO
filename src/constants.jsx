@@ -32,6 +32,25 @@ import {
   Files
 } from "lucide-react";
 
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  WHY colorStyle instead of color (Tailwind class string)?
+ *
+ *  Tailwind v4 scans source files for class names at build time.
+ *  When a class string is built dynamically (e.g. `bg-gradient-to-br ${color}`)
+ *  or stored inside a data array as a string literal, Tailwind's scanner
+ *  CAN miss it — especially on large desktop production builds. The result
+ *  is that those classes are purged from the CSS bundle, leaving icons
+ *  completely black (no background colour at all).
+ *
+ *  Using inline `style` objects bypasses Tailwind entirely; the browser
+ *  receives the CSS directly in the HTML and it CANNOT be purged.
+ *
+ *  We keep `color` as a legacy fallback so any component that still reads
+ *  tool.color (e.g. older lazy-loaded chunks) still gets *something*.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 export const TOOLS = [
   {
     id: "scan-to-pdf",
@@ -40,6 +59,7 @@ export const TOOLS = [
     icon: Camera,
     category: "pdf",
     color: "bg-gradient-to-br from-emerald-400 to-emerald-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #34d399, #059669)" },
   },
   {
     id: "merge-pdf",
@@ -48,6 +68,7 @@ export const TOOLS = [
     icon: Files,
     category: "pdf",
     color: "bg-gradient-to-br from-red-500 to-rose-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #ef4444, #be123c)" },
   },
   {
     id: "compress-pdf",
@@ -56,6 +77,7 @@ export const TOOLS = [
     icon: Minimize2,
     category: "pdf",
     color: "bg-gradient-to-br from-amber-400 to-orange-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #fbbf24, #ea580c)" },
   },
   {
     id: "jpg-to-pdf",
@@ -64,6 +86,7 @@ export const TOOLS = [
     icon: FileImage,
     category: "pdf",
     color: "bg-gradient-to-br from-indigo-500 to-blue-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #6366f1, #1d4ed8)" },
   },
   {
     id: "pdf-to-word",
@@ -72,6 +95,7 @@ export const TOOLS = [
     icon: FileText,
     category: "pdf",
     color: "bg-gradient-to-br from-blue-500 to-blue-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #3b82f6, #1d4ed8)" },
   },
   {
     id: "word-to-pdf",
@@ -80,6 +104,7 @@ export const TOOLS = [
     icon: FileUp,
     category: "pdf",
     color: "bg-gradient-to-br from-blue-600 to-indigo-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #2563eb, #3730a3)" },
   },
   {
     id: "excel-to-pdf",
@@ -88,6 +113,7 @@ export const TOOLS = [
     icon: FileSpreadsheet,
     category: "pdf",
     color: "bg-gradient-to-br from-green-500 to-emerald-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #22c55e, #047857)" },
   },
   {
     id: "watermark-pdf",
@@ -96,6 +122,7 @@ export const TOOLS = [
     icon: Stamp,
     category: "pdf",
     color: "bg-gradient-to-br from-sky-400 to-blue-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #38bdf8, #2563eb)" },
   },
   {
     id: "remove-pages",
@@ -104,6 +131,7 @@ export const TOOLS = [
     icon: Trash2,
     category: "pdf",
     color: "bg-gradient-to-br from-red-600 to-red-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #dc2626, #991b1b)" },
   },
   {
     id: "split-pdf",
@@ -112,6 +140,7 @@ export const TOOLS = [
     icon: Scissors,
     category: "pdf",
     color: "bg-gradient-to-br from-orange-400 to-orange-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #fb923c, #ea580c)" },
   },
   {
     id: "rotate-pdf",
@@ -120,6 +149,7 @@ export const TOOLS = [
     icon: RotateCcw,
     category: "pdf",
     color: "bg-gradient-to-br from-lime-500 to-green-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #84cc16, #15803d)" },
   },
   {
     id: "pdf-to-jpg",
@@ -128,6 +158,7 @@ export const TOOLS = [
     icon: ImageIcon,
     category: "pdf",
     color: "bg-gradient-to-br from-violet-500 to-purple-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #8b5cf6, #7e22ce)" },
   },
   {
     id: "page-numbers-pdf",
@@ -136,6 +167,7 @@ export const TOOLS = [
     icon: Hash,
     category: "pdf",
     color: "bg-gradient-to-br from-zinc-500 to-zinc-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #71717a, #3f3f46)" },
   },
   {
     id: "edit-pdf",
@@ -144,6 +176,7 @@ export const TOOLS = [
     icon: Edit,
     category: "pdf",
     color: "bg-gradient-to-br from-indigo-600 to-violet-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #4f46e5, #5b21b6)" },
   },
   {
     id: "lock-pdf",
@@ -152,6 +185,7 @@ export const TOOLS = [
     icon: Lock,
     category: "pdf",
     color: "bg-gradient-to-br from-slate-600 to-slate-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #475569, #1e293b)" },
   },
   {
     id: "unlock-pdf",
@@ -160,6 +194,7 @@ export const TOOLS = [
     icon: Wrench,
     category: "pdf",
     color: "bg-gradient-to-br from-zinc-400 to-zinc-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #a1a1aa, #52525b)" },
   },
   {
     id: "summarize-pdf",
@@ -168,6 +203,7 @@ export const TOOLS = [
     icon: Sparkles,
     category: "pdf",
     color: "bg-gradient-to-br from-cyan-400 to-blue-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #22d3ee, #2563eb)" },
     features: ["Concise Bullet Points", "Key Insights Extraction", "Multi-page Support", "Fast Processing"],
     proTip: "For best results, select only the most relevant pages to summarize."
   },
@@ -178,6 +214,7 @@ export const TOOLS = [
     icon: FileSearch,
     category: "pdf",
     color: "bg-gradient-to-br from-teal-400 to-emerald-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #2dd4bf, #059669)" },
     features: ["Optical Character Recognition", "Handwriting Support", "Table Data Extraction", "Multi-language Support"],
     proTip: "Ensure the document is well-lit and flat for the most accurate text extraction."
   },
@@ -188,6 +225,7 @@ export const TOOLS = [
     icon: Minimize2,
     category: "image",
     color: "bg-gradient-to-br from-purple-400 to-fuchsia-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #c084fc, #c026d3)" },
   },
   {
     id: "convert-image",
@@ -196,6 +234,7 @@ export const TOOLS = [
     icon: ImageIcon,
     category: "image",
     color: "bg-gradient-to-br from-pink-400 to-rose-600",
+    colorStyle: { background: "linear-gradient(to bottom right, #f472b6, #e11d48)" },
   },
   {
     id: "add-pages",
@@ -204,6 +243,7 @@ export const TOOLS = [
     icon: Plus,
     category: "pdf",
     color: "bg-gradient-to-br from-green-600 to-green-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #16a34a, #166534)" },
   },
   {
     id: "pptx-to-pdf",
@@ -212,6 +252,7 @@ export const TOOLS = [
     icon: Presentation,
     category: "pdf",
     color: "bg-gradient-to-br from-orange-600 to-red-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #ea580c, #b91c1c)" },
   },
   {
     id: "repair-pdf",
@@ -220,6 +261,7 @@ export const TOOLS = [
     icon: Hammer,
     category: "pdf",
     color: "bg-gradient-to-br from-zinc-700 to-zinc-900",
+    colorStyle: { background: "linear-gradient(to bottom right, #3f3f46, #18181b)" },
   },
   {
     id: "chat-pdf",
@@ -228,6 +270,7 @@ export const TOOLS = [
     icon: MessageSquare,
     category: "pdf",
     color: "bg-gradient-to-br from-purple-600 to-indigo-800",
+    colorStyle: { background: "linear-gradient(to bottom right, #9333ea, #3730a3)" },
     features: ["Interactive Q&A", "Context-aware Responses", "Document Analysis", "Instant Insights"],
     proTip: "You can ask specific questions like 'What is the total amount in the invoice?' or 'Summarize the conclusion section'."
   },
@@ -238,8 +281,8 @@ export const TOOLS = [
     icon: FileSignature,
     category: "pdf",
     color: "bg-gradient-to-br from-violet-500 to-indigo-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #8b5cf6, #4338ca)" },
     features: ["Interactive Drag & Drop", "Stylish Signature Fonts", "Date & Verified Badge Stamps", "Secure Processing"],
     proTip: "You can place multiple signatures across different pages and resize them visually before applying."
   }
 ];
-
