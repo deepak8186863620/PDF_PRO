@@ -530,8 +530,8 @@ export default function ESignTool({ onBack }) {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-5 shadow-inner border border-zinc-100 mx-auto max-w-[380px]">
-                    <img src={savedSignature.dataUrl} alt="Saved" className="max-h-[80px] object-contain mb-0 mx-auto" />
+                  <div className="bg-white rounded-2xl p-4 shadow-inner border border-zinc-100 mx-auto max-w-[380px] overflow-hidden">
+                    <img src={savedSignature.dataUrl} alt="Saved" className="w-full max-w-full h-auto max-h-[72px] object-contain block mx-auto" />
                     <div className="border-t border-gray-200 mt-3 mb-3" />
                     {savedSignature.fullName && <p className="font-bold text-gray-900 text-[15px] leading-tight text-center">{savedSignature.fullName}</p>}
                     {(savedSignature.designation || savedSignature.company) && (
@@ -570,7 +570,7 @@ export default function ESignTool({ onBack }) {
         </div>
       ) : (
         /* Quick Sign Success */
-        <div className="glass-card rounded-3xl p-8 text-center max-w-md mx-auto space-y-6 animate-in fade-in zoom-in-95">
+        <div className="glass-card rounded-3xl p-8 text-center max-w-md mx-auto space-y-6 animate-in fade-in zoom-in-95" ref={el => el?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg">
             <FileSignature size={28} />
           </div>

@@ -284,5 +284,16 @@ export const TOOLS = [
     colorStyle: { background: "linear-gradient(to bottom right, #8b5cf6, #4338ca)" },
     features: ["Interactive Drag & Drop", "Stylish Signature Fonts", "Date & Verified Badge Stamps", "Secure Processing"],
     proTip: "You can place multiple signatures across different pages and resize them visually before applying."
+  },
+  {
+    id: "smartsign-pro",
+    name: "SmartSign Pro",
+    description: "Enterprise eSignature with SES/AES/QES levels, multi-signer workflows, audit trail & Certificate of Completion.",
+    icon: FileCheck,
+    category: "pdf",
+    color: "bg-gradient-to-br from-violet-600 to-amber-500",
+    colorStyle: { background: "linear-gradient(135deg, #7c3aed 0%, #f59e0b 100%)" },
+    features: ["SES / AES / QES Levels", "Multi-Signer Routing", "Audit Trail & CoC", "ESIGN · eIDAS · IT Act"],
+    proTip: "Use QES level for legal contracts requiring the highest compliance. The Certificate of Completion is automatically generated once all parties sign."
   }
 ];

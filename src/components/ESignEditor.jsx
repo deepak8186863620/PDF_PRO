@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import * as pdfjsLib from "pdfjs-dist";
 import { X, Save, Trash2, ZoomIn, ZoomOut, Move, Maximize2, FileSignature, Info, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
@@ -235,24 +236,24 @@ export default function ESignEditor({ file, signatureData, sigProfile, onClose, 
     );
   };
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[150] flex flex-col bg-[#080808]"
+      className="fixed inset-0 z-[999] flex flex-col bg-[#080808]"
     >
       {/* ── Top Bar ── */}
-      <div className="shrink-0 h-16 bg-zinc-950 border-b border-white/5 px-5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={onClose} className="w-10 h-10 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl flex items-center justify-center transition-all border border-white/5">
+      <div className="shrink-0 h-16 bg-zinc-950 border-b border-white/5 px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={onClose} className="w-10 h-10 shrink-0 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl flex items-center justify-center transition-all border border-white/5">
             <X size={18} />
           </button>
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center">
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center shrink-0">
               <FileSignature size={15} className="text-violet-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-none">Place Signature</p>
               <p className="text-zinc-500 text-[10px] mt-0.5">Click anywhere on the PDF to stamp your signature block</p>
             </div>
@@ -270,11 +271,11 @@ export default function ESignEditor({ file, signatureData, sigProfile, onClose, 
           </button>
         </div>
 
-        {/* Apply */}
+        {/* Apply — desktop */}
         <button
           onClick={handleSave}
           disabled={isSaving || placedSigs.length === 0}
-          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-violet-500/20"
+          className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-violet-500/20"
         >
           {isSaving
             ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -398,6 +399,21 @@ export default function ESignEditor({ file, signatureData, sigProfile, onClose, 
           )}
         </div>
       </div>
-    </motion.div>
+
+      {/* ── Mobile sticky bottom Apply bar ── */}
+      <div className="sm:hidden shrink-0 bg-zinc-950 border-t border-white/10 px-4 py-3">
+        <button
+          onClick={handleSave}
+          disabled={isSaving || placedSigs.length === 0}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all"
+        >
+          {isSaving
+            ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            : <Save size={15} />}
+          {isSaving ? "Applying signatures…" : `Apply Signature${placedSigs.length > 1 ? `s (${placedSigs.length})` : ""}`}
+        </button>
+      </div>
+    </motion.div>,
+    document.body
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import * as pdfjsLib from "pdfjs-dist";
 import { X, Save, ZoomIn, ZoomOut, Move, Maximize2, FileSignature, Info, Settings, HelpCircle } from "lucide-react";
 import { motion } from "motion/react";
@@ -260,12 +261,12 @@ export default function ESignWorkflowEditor({ file, userAEmail, userBEmail, onCl
     );
   };
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[150] flex flex-col bg-[#080808]"
+      className="fixed inset-0 z-[999] flex flex-col bg-[#080808]"
     >
       {/* Top Bar */}
       <div className="shrink-0 h-16 bg-zinc-950 border-b border-white/5 px-5 flex items-center justify-between gap-4">
@@ -413,6 +414,7 @@ export default function ESignWorkflowEditor({ file, userAEmail, userBEmail, onCl
           )}
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

@@ -242,10 +242,10 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
       : null;
 
     return (
-      <div className="bg-white rounded-2xl p-5 shadow-inner border border-zinc-200 min-h-[150px]">
+      <div className="bg-white rounded-2xl p-5 shadow-inner border border-zinc-200 min-h-[150px] overflow-hidden">
         {/* Signature image area */}
         {rawSig ? (
-          <img src={rawSig} alt="signature" className="max-h-[72px] object-contain mb-0" />
+          <img src={rawSig} alt="signature" className="w-full max-w-full h-auto max-h-[72px] object-contain block" />
         ) : (
           <div className="h-16 flex items-center">
             <span className="text-zinc-300 text-sm italic">Your signature appears here…</span>
@@ -341,8 +341,8 @@ export default function ESignCreator({ onSave, prefillName = "" }) {
           <div className="mt-4 space-y-4">
             <label className="cursor-pointer flex flex-col items-center gap-3 p-8 border border-dashed border-zinc-700 rounded-2xl hover:border-zinc-500 transition-all block">
               {uploadedImg
-                ? <div className="bg-white p-2 rounded-xl border border-zinc-200">
-                    <img src={uploadedImg} alt="sig" className="max-h-24 object-contain" />
+                ? <div className="bg-white p-2 rounded-xl border border-zinc-200 overflow-hidden">
+                    <img src={uploadedImg} alt="sig" className="w-full max-w-full h-auto max-h-24 object-contain block" />
                   </div>
                 : <><Upload size={28} className="text-zinc-500" /><span className="text-zinc-400 text-sm text-center">Take a photo of your signature<br/>or upload an image</span></>}
               <input type="file" accept="image/*" className="hidden"
