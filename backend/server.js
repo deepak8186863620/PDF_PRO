@@ -2035,14 +2035,31 @@ Your behaviour rules:
     }
   } else {
     const distPath = path.join(process.cwd(), "dist");
+
+    // ── SEO-critical files: NEVER cache aggressively ──────────────────
+    // robots.txt and sitemap.xml must be re-fetchable by crawlers at any time.
+    app.get("/robots.txt", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.sendFile(path.join(distPath, "robots.txt"));
+    });
+    app.get("/sitemap.xml", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.sendFile(path.join(distPath, "sitemap.xml"));
+    });
+
     app.use(express.static(distPath, {
       maxAge: "1d",
       etag: true,
       setHeaders: (res, filePath) => {
-        // Cache built assets and images forever since they are content-hashed
+        // Cache built assets forever since they are content-hashed
         if (filePath.includes("assets") || filePath.match(/\.(js|css|webp|png|jpg|jpeg|gif|ico|svg|woff|woff2|json)$/)) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         } else if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        } else if (filePath.endsWith(".txt") || filePath.endsWith(".xml")) {
+          // robots.txt, sitemap.xml, and any other SEO/text files — no caching
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         }
       }
