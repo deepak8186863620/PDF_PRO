@@ -1,4 +1,16 @@
+# Allow all crawlers full access
 User-agent: *
 Allow: /
+Disallow:
+
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+Disallow:
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
+Disallow:
 
 Sitemap: https://pdf-pro-dx2i.onrender.com/sitemap.xml
