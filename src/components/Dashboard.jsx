@@ -86,7 +86,7 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
   };
 
   return (
-    <div className="min-h-[100dvh] pt-20 flex bg-[#0f0f11]">
+    <div className="min-h-[100dvh] pt-20 flex bg-[#0f0f11] overflow-x-hidden">
       
       {/* Premium Sidebar */}
       <div className="w-[260px] border-r border-white/5 hidden lg:flex flex-col fixed left-0 top-20 bottom-0 bg-[#09090b] z-10 pt-6">
@@ -160,7 +160,7 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:ml-64 px-4 sm:px-8 py-8 w-full max-w-[1200px] mx-auto">
+      <div className="flex-1 min-w-0 lg:ml-[260px] px-4 sm:px-8 py-8">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
            <h1 className="text-2xl sm:text-3xl font-400 text-white mb-10 tracking-tight">
              Welcome, {user.displayName ? user.displayName.split(' ')[0] : 'User'}

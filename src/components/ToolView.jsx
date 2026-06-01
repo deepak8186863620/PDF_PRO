@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash } from "lucide-react";
+import { ArrowLeft, Download, FileCheck, Sparkles, FileText, Camera, Edit3, Send, User, MessageSquare, Plus, X, Hash, Wrench } from "lucide-react";
 import FileUpload from "./FileUpload";
 import ProcessingOverlay from "./ProcessingOverlay";
 import { toast } from "sonner";
@@ -720,7 +720,36 @@ export default function ToolView({ tool, onBack }) {
           </React.Suspense>
         )}
 
-        {tool.id !== "esign-pdf" && (
+        {tool.id === "smartsign-pro" && (
+          <div className="flex flex-col items-center justify-center p-12 bg-zinc-900/60 border border-white/5 rounded-3xl max-w-xl mx-auto text-center space-y-6 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-amber-500/10 opacity-30 pointer-events-none blur-3xl" />
+            
+            <div className="relative w-20 h-20 bg-gradient-to-br from-violet-500/10 to-amber-500/10 rounded-2xl flex items-center justify-center border border-white/10 text-amber-400 animate-pulse">
+              <Wrench size={36} className="text-amber-400" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-white tracking-tight">SmartSign Pro</h2>
+              <p className="text-xs font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full w-fit mx-auto">
+                Under Work
+              </p>
+            </div>
+            
+            <p className="text-zinc-400 text-sm leading-relaxed max-w-sm">
+              We are working hard to bring you Enterprise-grade eSignatures, multi-signer workflows, audit trail & Certificate of Completion. Stay tuned!
+            </p>
+            
+            <button
+              onClick={onBack}
+              className="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-bold text-sm rounded-full transition-all duration-300"
+            >
+              Back to Tools
+            </button>
+          </div>
+        )}
+
+        {tool.id !== "esign-pdf" && tool.id !== "smartsign-pro" && (
           <AnimatePresence mode="wait">
             {!resultFile && !summary && !ocrText && !isStreaming ? (
               <motion.div
