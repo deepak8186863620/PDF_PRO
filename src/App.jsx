@@ -330,6 +330,7 @@ export default function App() {
             onFeedbackClick={handleFeedbackClick}
             onLoginClick={handleLoginClick}
             onBlogClick={handleBlogClick}
+            onToolClick={handleToolClick}
             theme={theme}
             onToggleTheme={handleToggleTheme}
           />

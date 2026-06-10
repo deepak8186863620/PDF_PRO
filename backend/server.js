@@ -6,6 +6,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import multer from "multer";
 import cors from "cors";
+import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFRawStream, PDFDict } from "pdf-lib";
@@ -2011,6 +2012,56 @@ Your behaviour rules:
   }, 5 * 60 * 1000);
 
   /* ══════════════════════════════════════════
+     ERROR REPORTING (EMAIL)
+  ══════════════════════════════════════════ */
+  app.post("/api/report-error", async (req, res) => {
+    try {
+      const errorData = req.body;
+      logger.info("Received client error report: " + errorData.message);
+      
+      const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+      
+      if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !ADMIN_EMAIL) {
+        logger.warn("Email configuration missing, unable to send error report.");
+        return res.status(500).json({ error: "Email configuration missing." });
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT || 587,
+        secure: SMTP_PORT === "465", // true for 465, false for other ports
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: `"App Error Reporter" <${SMTP_USER}>`,
+        to: ADMIN_EMAIL,
+        subject: `⚠️ Application Error: ${errorData.message || "Unknown Error"}`,
+        text: `An error occurred on the frontend.\n\nType: ${errorData.type}\nMessage: ${errorData.message}\nURL: ${errorData.url}\nUser-Agent: ${errorData.userAgent}\nTime: ${errorData.time}\n\nStack Trace:\n${errorData.stack || "No stack trace available."}`,
+        html: `
+          <h2>Frontend Error Report</h2>
+          <p><strong>Type:</strong> ${errorData.type}</p>
+          <p><strong>Message:</strong> ${errorData.message}</p>
+          <p><strong>URL:</strong> ${errorData.url}</p>
+          <p><strong>User-Agent:</strong> ${errorData.userAgent}</p>
+          <p><strong>Time:</strong> ${errorData.time}</p>
+          <h3>Stack Trace:</h3>
+          <pre>${errorData.stack || "No stack trace available."}</pre>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
+      res.json({ success: true, message: "Error report sent to admin." });
+    } catch (err) {
+      logger.error("Failed to send error report email: " + err.message);
+      res.status(500).json({ error: "Failed to send email." });
+    }
+  });
+
+  /* ══════════════════════════════════════════
      GLOBAL ERROR HANDLER
   ══════════════════════════════════════════ */
   app.use((err, _req, res, _next) => {
@@ -2074,6 +2125,23 @@ Your behaviour rules:
     logger.info(`🚀 Server ready at http://localhost:${PORT}`);
     logger.info(`📁 Uploads: ${UPLOADS_DIR}`);
     logger.info(`🔑 Gemini AI: ${process.env.GEMINI_API_KEY ? "✓ Configured" : "✗ Missing GEMINI_API_KEY"}`);
+
+    /* ─── KEEP-ALIVE SELF-PING (prevents Render free-tier spin-down) ─── */
+    const RENDER_URL = process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL;
+    if (RENDER_URL && process.env.NODE_ENV === "production") {
+      const KEEP_ALIVE_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes (Render sleeps after 15)
+      setInterval(async () => {
+        try {
+          const pingUrl = `${RENDER_URL.replace(/\/$/, "")}/api/health`;
+          const resp = await fetch(pingUrl);
+          const data = await resp.json();
+          logger.info(`♻️  Keep-alive ping → ${data.status} (${data.timestamp})`);
+        } catch (err) {
+          logger.warn(`♻️  Keep-alive ping failed: ${err.message}`);
+        }
+      }, KEEP_ALIVE_INTERVAL_MS);
+      logger.info(`♻️  Keep-alive enabled — pinging ${RENDER_URL}/api/health every 14 min`);
+    }
   });
 
   process.on("unhandledRejection", (reason) => {

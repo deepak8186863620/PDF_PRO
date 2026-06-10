@@ -4,21 +4,15 @@ import { auth, googleProvider, signInWithPopup, signOut, db, doc, setDoc, getDoc
 import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "motion/react";
 import deepakImg from "../assets/deepak.webp";
+import { TOOLS } from "../constants";
 
-export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick, theme, onToggleTheme }) {
+export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick, onToolClick, theme, onToggleTheme }) {
   const [user] = useAuthState(auth);
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [showIosGuide, setShowIosGuide] = useState(false);
-  const guideRef = useRef(null);
-
-  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-  const isStandalone =
-    ('standalone' in window.navigator && window.navigator.standalone) ||
-    window.matchMedia('(display-mode: standalone)').matches;
+  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
+  const appLauncherRef = useRef(null);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -40,38 +34,21 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    if (isStandalone) { setIsInstalled(true); return; }
-    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => { setIsInstalled(true); setDeferredPrompt(null); });
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
 
-  // Close iOS guide on outside click
+
+  // Close app launcher on outside click
   useEffect(() => {
-    if (!showIosGuide) return;
+    if (!isAppLauncherOpen) return;
     const handleOutside = (e) => {
-      if (guideRef.current && !guideRef.current.contains(e.target)) {
-        setShowIosGuide(false);
+      if (appLauncherRef.current && !appLauncherRef.current.contains(e.target)) {
+        setIsAppLauncherOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
-  }, [showIosGuide]);
+  }, [isAppLauncherOpen]);
 
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      // Native one-click install (Chrome, Edge, Android)
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') setIsInstalled(true);
-      setDeferredPrompt(null);
-    } else {
-      // iOS or browser without native prompt — show how-to guide
-      setShowIosGuide(prev => !prev);
-    }
-  };
+
 
   const handleLogin = () => { onLoginClick?.(); };
 
@@ -116,9 +93,67 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
               </div>
             </button>
 
-            <button className="text-zinc-400 hover:text-white transition-colors hidden md:block">
-              <Grip size={20} />
-            </button>
+            {/* App Launcher (9 dots) */}
+            <div className="relative hidden md:block" ref={appLauncherRef}>
+              <button 
+                onClick={() => setIsAppLauncherOpen(!isAppLauncherOpen)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  isAppLauncherOpen 
+                    ? "bg-white/10 text-white" 
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
+                aria-label="Apps Launcher"
+              >
+                <Grip size={20} />
+              </button>
+
+              <AnimatePresence>
+                {isAppLauncherOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 top-12 w-[320px] bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl p-4 z-50 origin-top-left"
+                  >
+                    <div className="flex justify-between items-center mb-3 px-2">
+                      <span className="text-white text-sm font-700">Apps</span>
+                      <button 
+                        onClick={() => {
+                          onHomeClick?.();
+                          setIsAppLauncherOpen(false);
+                        }}
+                        className="text-purple-400 hover:text-purple-300 text-xs font-600 transition-colors"
+                      >
+                        View all
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 max-h-[380px] overflow-y-auto pr-1">
+                      {TOOLS.map((tool) => (
+                        <button
+                          key={tool.id}
+                          onClick={() => {
+                            onToolClick?.(tool.name);
+                            setIsAppLauncherOpen(false);
+                          }}
+                          className="flex flex-col items-center justify-center p-3 gap-2 rounded-xl hover:bg-white/5 transition-colors group text-center"
+                        >
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ${tool.color}`}
+                            style={tool.colorStyle}
+                          >
+                            <tool.icon size={18} className="text-white" />
+                          </div>
+                          <span className="text-[10px] font-600 text-zinc-300 group-hover:text-white leading-tight line-clamp-2">
+                            {tool.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-8">
@@ -145,69 +180,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
           {/* Right side */}
           <div className="flex items-center gap-3">
 
-            {/* Install App button — always visible unless already installed */}
-            {!isInstalled && (
-              <div className="relative" ref={guideRef}>
-                <button
-                  id="navbar-install-btn"
-                  onClick={handleInstallClick}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-700 text-white bg-white/10 border border-white/15 hover:bg-white/20 active:scale-95 transition-all duration-150"
-                >
-                  <Download size={13} />
-                  Install App
-                </button>
-
-                {/* Guide popover — only shown on iOS or when no native prompt */}
-                <AnimatePresence>
-                  {showIosGuide && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 top-11 w-72 bg-[#1a1a1a] border border-white/15 rounded-2xl shadow-2xl p-4 z-50"
-                    >
-                      {isIos ? (
-                        <>
-                          <p className="text-white text-xs font-700 mb-3">Add to Home Screen (iOS)</p>
-                          <div className="space-y-2.5 text-xs text-zinc-300">
-                            <p className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">1</span>
-                              Tap the <Share size={13} className="text-white mx-1 flex-shrink-0" /> Share button in Safari.
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">2</span>
-                              Tap <PlusSquare size={13} className="text-white mx-1 flex-shrink-0" /> <strong>Add to Home Screen</strong>.
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">3</span>
-                              Tap <strong>Add</strong> to confirm.
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-white text-xs font-700 mb-2">Install PDF Master</p>
-                          <p className="text-zinc-400 text-xs mb-3">Your browser will show an install dialog shortly. If not:</p>
-                          <div className="space-y-2 text-xs text-zinc-300">
-                            <p className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">1</span>
-                              Click the <strong className="text-white mx-1">⋮</strong> menu in Chrome/Edge.
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-700 flex-shrink-0">2</span>
-                              Click <strong className="text-white">"Install PDF Master…"</strong>
-                            </p>
-                          </div>
-                          <p className="text-zinc-500 text-[10px] mt-3">💡 For instant install, use Chrome or Edge.</p>
-                        </>
-                      )}
-                      <div className="absolute -top-2 right-5 w-3 h-3 bg-[#1a1a1a] border-t border-l border-white/15 rotate-45" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+            {/* Removed Install App button from Navbar to save space, will be placed elsewhere */}
 
             {/* Server status pill */}
             <div
@@ -262,13 +235,13 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                       <img
                         src={user.photoURL}
                         alt={user.displayName || ""}
-                        className="w-8 h-8 rounded-full ring-2 ring-white/20"
+                        className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover flex-shrink-0"
                       />
                     ) : (
                       <img
                         src={deepakImg}
                         alt="Profile"
-                        className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover"
+                        className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover flex-shrink-0"
                       />
                     )}
                   </button>
