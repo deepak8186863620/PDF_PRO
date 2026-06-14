@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import deepakImg from "../assets/deepak.webp";
 import { TOOLS } from "../constants";
 
-export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick, onToolClick, theme, onToggleTheme }) {
+export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, onFeedbackClick, onLoginClick, onBlogClick, onToolClick, onPricingClick, theme, onToggleTheme }) {
   const [user] = useAuthState(auth);
   const [serverStatus, setServerStatus] = useState("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,6 +61,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
   const navLinks = [
     { label: "HOME PAGE", action: onHomeClick },
     { label: "ABOUT US", action: onAboutClick },
+    { label: "PRICING", action: onPricingClick },
     { label: "FEEDBACK", action: onFeedbackClick },
     { label: "BLOG & HELP", action: onBlogClick },
   ];
@@ -220,7 +221,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                   </button>
                   <button
                     onClick={handleLogin}
-                    className="bg-[#E5322D] hover:bg-[#D42B27] text-white px-6 py-3 rounded-xl text-base font-700 transition-all shadow-lg"
+                    className="bg-[#E5322D] hover:bg-[#D42B27] text-[#fff] px-6 py-3 rounded-xl text-base font-700 transition-all shadow-lg"
                   >
                     Sign up
                   </button>

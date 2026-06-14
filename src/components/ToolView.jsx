@@ -10,6 +10,8 @@ import { auth, db, collection, addDoc, Timestamp, handleFirestoreError, Operatio
 import { useAuthState } from "react-firebase-hooks/auth";
 import React from "react";
 import { trackToolUsage, trackError } from "../lib/analytics";
+import { usePremium, isPremiumTool } from "../lib/usePremium";
+import UpgradeModal from "./UpgradeModal";
 
 const ESignTool = React.lazy(() => import("./ESignTool"));
 const CameraScanner = React.lazy(() => import("./CameraScanner"));
@@ -48,6 +50,13 @@ export default function ToolView({ tool, onBack }) {
   const [processingStatus, setProcessingStatus] = useState("Processing your files...");
   const [isStreaming, setIsStreaming] = useState(false);
   const [user] = useAuthState(auth);
+  
+  // Premium Hook
+  const { checkCanUse, trackUsage } = usePremium();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeToolId, setUpgradeToolId] = useState("");
+  const [upgradeUsed, setUpgradeUsed] = useState(0);
+  const [upgradeLimit, setUpgradeLimit] = useState(0);
 
   // Range selector state (for remove-pages tool)
   const [rangeFrom, setRangeFrom] = useState("");
@@ -103,6 +112,17 @@ export default function ToolView({ tool, onBack }) {
   const handleSendMessage = async () => {
     if (!chatInput.trim() || isChatting) return;
 
+    if (isPremiumTool(tool.id)) {
+      const { allowed, used, limit } = checkCanUse(tool.id);
+      if (!allowed) {
+        setUpgradeToolId(tool.id);
+        setUpgradeUsed(used);
+        setUpgradeLimit(limit);
+        setShowUpgradeModal(true);
+        return;
+      }
+    }
+
     const userMessage = chatInput.trim();
     setChatInput("");
     setChatMessages(prev => [...prev, { role: "user", text: userMessage }]);
@@ -140,6 +160,11 @@ export default function ToolView({ tool, onBack }) {
         } catch (err) {
           console.error("Failed to log AI interaction:", err);
         }
+      }
+      
+      // Track usage
+      if (isPremiumTool(tool.id)) {
+        await trackUsage(tool.id);
       }
     } catch (error) {
       console.error("Chat Error:", error);
@@ -217,6 +242,17 @@ export default function ToolView({ tool, onBack }) {
     if (files.length === 0) {
       toast.error("Please select at least one file.");
       return;
+    }
+
+    if (isPremiumTool(tool.id)) {
+      const { allowed, used, limit } = checkCanUse(tool.id);
+      if (!allowed) {
+        setUpgradeToolId(tool.id);
+        setUpgradeUsed(used);
+        setUpgradeLimit(limit);
+        setShowUpgradeModal(true);
+        return;
+      }
     }
 
     if ((tool.id === "merge-pdf" || tool.id === "add-pages") && files.length < 2) {
@@ -608,6 +644,12 @@ export default function ToolView({ tool, onBack }) {
           setResultFile(result);
           saveHistory(result);
         }
+        
+        // Track usage for premium tools
+        if (isPremiumTool(tool.id)) {
+          trackUsage(tool.id);
+        }
+
         trackToolUsage(tool.id, 'process_success');
         toast.success("File processed successfully!");
       }, 100);
@@ -1457,6 +1499,22 @@ export default function ToolView({ tool, onBack }) {
           onCancel={() => setShowCamera(false)}
         />
       )}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+        toolId={upgradeToolId}
+        used={upgradeUsed}
+        limit={upgradeLimit}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          // Assuming App.js has routing for pricing or we trigger it via navigation
+          window.history.pushState({ view: "pricing" }, "", "");
+          window.dispatchEvent(new PopStateEvent('popstate', { state: { view: "pricing" } }));
+          // Note: Since ToolView relies on onBack, if we have onPricingClick we'd call it here, 
+          // but dispatching popstate handles the global route change in App.jsx!
+          // We can just rely on the user navigating via Navbar or App handles it.
+        }}
+      />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, CheckCircle2, Shield, Zap, Globe, FileText, Lock, Brain, ChevronDown, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Shield, Zap, Globe, FileText, Lock, Brain, ChevronDown, Sparkles, Loader2, Crown, Check, MessageSquare, FileSearch, FileSignature, FileCheck, ArrowRight } from "lucide-react";
 import { auth, googleProvider, microsoftProvider, signInWithPopup, signInWithRedirect, getRedirectResult, db, doc, setDoc, getDoc, Timestamp } from "../firebase";
 import { setAnalyticsUser, trackLogin, trackSignUp } from "../lib/analytics";
 import loginPromo from "../assets/login-promo.webp";
+import { PLANS } from "../lib/usePremium";
 
 import Footer from "./Footer";
 
@@ -113,6 +114,29 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
     "Cross-platform synchronization"
   ];
 
+  const [billingCycle, setBillingCycle] = useState("monthly");
+
+  const freeFeatures = [
+    { icon: Check, text: "All basic PDF tools — unlimited" },
+    { icon: Check, text: "5 AI Summarizations / month" },
+    { icon: Check, text: "10 Chat with PDF sessions / month" },
+    { icon: Check, text: "5 OCR text extractions / month" },
+    { icon: Check, text: "3 E-Sign documents / month" },
+    { icon: Check, text: "1 SmartSign Pro document / month" },
+    { icon: Check, text: "Community support" },
+  ];
+
+  const proFeatures = [
+    { icon: Check, text: "Everything in Free, plus:" },
+    { icon: Sparkles, text: "Unlimited AI Summarizations", highlight: true },
+    { icon: MessageSquare, text: "Unlimited Chat with PDF", highlight: true },
+    { icon: FileSearch, text: "Unlimited OCR extractions", highlight: true },
+    { icon: FileSignature, text: "Unlimited E-Signatures", highlight: true },
+    { icon: FileCheck, text: "Unlimited SmartSign Pro", highlight: true },
+    { icon: Zap, text: "Priority processing speed", highlight: true },
+    { icon: Shield, text: "Priority email support" },
+  ];
+
   return (
     <div className="w-full min-h-[100dvh] bg-black text-white selection:bg-red-500/30">
       {/* ── Top Section: Login Card ── */}
@@ -179,7 +203,7 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
             <button
               onClick={handleMicrosoftSignIn}
               disabled={isRedirecting || googleLoading || msLoading}
-              className="w-full flex items-center justify-center gap-3 bg-[#2f2f2f] hover:bg-[#3c3c3c] text-white px-6 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 shadow-xl hover:shadow-white/5 mb-8 disabled:opacity-60 disabled:cursor-not-allowed border border-white/10"
+              className="w-full flex items-center justify-center gap-3 bg-[#2f2f2f] hover:bg-[#3c3c3c] text-[#fff] px-6 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 shadow-xl hover:shadow-white/5 mb-8 disabled:opacity-60 disabled:cursor-not-allowed border border-white/10"
             >
               {msLoading ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> Signing in…</>
@@ -315,6 +339,169 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
             </motion.div>
           </div>
           
+        </div>
+      </div>
+
+      {/* ── Pricing Cards Section ── */}
+      <div className="py-24 md:py-32 px-4 relative z-10 bg-black border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-800 text-white tracking-tight mb-4">Simple, transparent pricing</h2>
+            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-8">
+              Start free with generous limits. Upgrade to Pro when you need unlimited power.
+            </p>
+            
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {/* Free Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="relative rounded-3xl p-8 lg:p-10 border border-white/20 ring-1 ring-white/10 bg-[#111] transition-all duration-300"
+            >
+              <div className="mb-8">
+                <h3 className="text-2xl font-800 text-white mb-2">Free</h3>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-5xl font-900 text-white">₹0</span>
+                  <span className="text-zinc-500 text-sm font-600">/forever</span>
+                </div>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  Perfect for casual use. All basic PDF tools with generous AI limits.
+                </p>
+              </div>
+
+              <div className="space-y-3.5 mb-8">
+                {freeFeatures.map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                      <feature.icon size={12} className="text-zinc-400" />
+                    </div>
+                    <span className="text-sm text-zinc-300">{feature.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="w-full py-3.5 rounded-xl text-sm font-700 bg-white/10 text-white hover:bg-white/15 transition-colors border border-white/10"
+              >
+                Get Started for Free
+              </button>
+            </motion.div>
+
+            {/* Pro Monthly Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="relative rounded-3xl p-8 lg:p-10 border border-purple-500/20 bg-gradient-to-br from-[#1a1025] to-[#111] shadow-2xl shadow-purple-600/10 transition-all duration-300 flex flex-col"
+            >
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-600/5 to-pink-600/5 pointer-events-none" />
+
+              <div className="relative mb-8 mt-2">
+                <h3 className="text-2xl font-800 text-white mb-2 flex items-center gap-2">
+                  Monthly <Crown size={20} className="text-amber-400" />
+                </h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-5xl font-900 text-white">₹{PLANS.pro_monthly.price}</span>
+                  <span className="text-zinc-500 text-sm font-600">/month</span>
+                </div>
+                <p className="text-zinc-400 text-sm leading-relaxed mt-4">
+                  Unlimited everything. Billed monthly for maximum flexibility.
+                </p>
+              </div>
+
+              <div className="relative space-y-3.5 mb-8 flex-grow">
+                {proFeatures.map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      feature.highlight ? "bg-purple-500/20" : "bg-zinc-800"
+                    }`}>
+                      <feature.icon size={12} className={feature.highlight ? "text-purple-400" : "text-zinc-400"} />
+                    </div>
+                    <span className={`text-sm ${feature.highlight ? "text-white font-600" : "text-zinc-300"}`}>
+                      {feature.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-auto relative">
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="relative w-full py-4 rounded-xl text-base font-800 bg-purple-500/10 hover:bg-purple-500/20 text-white transition-all duration-300 shadow-xl shadow-purple-500/10 hover:shadow-purple-500/20 flex items-center justify-center gap-2 border border-purple-500/30"
+                >
+                  Choose Monthly
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Pro Yearly Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="relative rounded-3xl p-8 lg:p-10 border border-emerald-500/30 bg-gradient-to-br from-[#022c22] to-[#111] shadow-2xl shadow-emerald-600/10 hover:border-emerald-500/50 transition-all duration-300 ring-1 ring-emerald-500/20 scale-[1.03] z-10 flex flex-col"
+            >
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 whitespace-nowrap border border-emerald-400/30">
+                <Sparkles size={14} />
+                Best Value
+              </div>
+
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 pointer-events-none" />
+
+              <div className="relative mb-8 mt-2">
+                <h3 className="text-2xl font-800 text-white mb-2 flex items-center gap-2">
+                  Yearly <Crown size={20} className="text-emerald-400" />
+                </h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-5xl font-900 text-white">₹{PLANS.pro_yearly.price}</span>
+                  <span className="text-zinc-400 text-sm font-600">/year</span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs text-zinc-500 line-through">₹{PLANS.pro_monthly.price * 12}/yr</span>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                    Save ₹{(PLANS.pro_monthly.price * 12) - PLANS.pro_yearly.price}
+                  </span>
+                </div>
+                <p className="text-emerald-100/70 text-sm leading-relaxed mt-3">
+                  Unlimited everything. Get maximum savings with our annual plan.
+                </p>
+              </div>
+
+              <div className="relative space-y-3.5 mb-8 flex-grow">
+                {proFeatures.map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      feature.highlight ? "bg-emerald-500/20" : "bg-zinc-800/80"
+                    }`}>
+                      <feature.icon size={12} className={feature.highlight ? "text-emerald-400" : "text-zinc-400"} />
+                    </div>
+                    <span className={`text-sm ${feature.highlight ? "text-white font-600" : "text-zinc-300"}`}>
+                      {feature.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-auto relative">
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="w-full py-4 rounded-xl text-base font-800 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-300 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 border border-emerald-400/50"
+                >
+                  <Crown size={18} />
+                  Login to Upgrade
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
         </div>
       </div>
       

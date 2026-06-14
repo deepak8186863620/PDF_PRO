@@ -8,6 +8,7 @@ import ToolCard from "./components/ToolCard";
 import AboutUs from "./components/AboutUs";
 import Login from "./components/Login";
 import FeedbackPage from "./components/FeedbackPage";
+import PricingPage from "./components/PricingPage";
 
 const ToolView = React.lazy(() => import("./components/ToolView"));
 const Dashboard = React.lazy(() => import("./components/Dashboard"));
@@ -25,6 +26,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { trackPageView, setAnalyticsUser, clearAnalyticsUser } from "./lib/analytics";
+import { isPremiumTool } from "./lib/usePremium";
 
 export default function App() {
   const [selectedTool, setSelectedTool] = useState(null);
@@ -262,6 +264,14 @@ export default function App() {
     setView("blog");
   };
 
+  const handlePricingClick = () => {
+    if (view !== "pricing" || selectedTool) {
+      window.history.pushState({ view: "pricing" }, "", "");
+    }
+    setSelectedTool(null);
+    setView("pricing");
+  };
+
   const handleToolClick = (toolName) => {
     const tool = TOOLS.find(t => t.name === toolName);
     if (tool) {
@@ -331,6 +341,7 @@ export default function App() {
             onLoginClick={handleLoginClick}
             onBlogClick={handleBlogClick}
             onToolClick={handleToolClick}
+            onPricingClick={handlePricingClick}
             theme={theme}
             onToggleTheme={handleToggleTheme}
           />
@@ -433,6 +444,24 @@ export default function App() {
                 <Login 
                   onBack={handleHomeClick} 
                   onLoginSuccess={handleHomeClick} 
+                  onAboutClick={handleAboutClick} 
+                  onToolClick={handleToolClick} 
+                  onContactClick={handleFeedbackClick} 
+                  onTermsClick={handleTermsClick} 
+                  onPrivacyClick={handlePrivacyClick} 
+                  onBlogClick={handleBlogClick}
+                />
+              </motion.div>
+            ) : view === "pricing" ? (
+              <motion.div
+                key="pricing"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+              >
+                <PricingPage 
+                  onBack={handleHomeClick} 
                   onAboutClick={handleAboutClick} 
                   onToolClick={handleToolClick} 
                   onContactClick={handleFeedbackClick} 
@@ -656,6 +685,7 @@ export default function App() {
                                   >
                                     <ToolCard
                                       {...tool}
+                                      isPremium={isPremiumTool(tool.id)}
                                       onClick={() => handleOpenTool(tool)}
                                     />
                                   </motion.div>
@@ -757,7 +787,7 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {view !== "login" && <Footer onAboutClick={handleAboutClick} onToolClick={handleToolClick} onContactClick={handleFeedbackClick} onTermsClick={handleTermsClick} onPrivacyClick={handlePrivacyClick} onBlogClick={handleBlogClick} />}
+        {view !== "login" && <Footer onAboutClick={handleAboutClick} onToolClick={handleToolClick} onContactClick={handleFeedbackClick} onTermsClick={handleTermsClick} onPrivacyClick={handlePrivacyClick} onBlogClick={handleBlogClick} onPricingClick={handlePricingClick} />}
         
         {/* Floating Share / Feedback Button */}
         {view === "home" && (

@@ -420,7 +420,7 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-[#E5322D] hover:bg-[#D42B27] text-white rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl shadow-red-500/10 hover:scale-105 active:scale-95 disabled:opacity-50"
+          className="flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-[#E5322D] hover:bg-[#D42B27] text-[#fff] rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl shadow-red-500/10 hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           {isSaving ? "Saving..." : "Save Changes"}
           <Save size={18} />

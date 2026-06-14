@@ -1,17 +1,17 @@
 import { motion } from "motion/react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Crown } from "lucide-react";
 
-export default function ToolCard({ name, description, icon: Icon, color, colorStyle, category, onClick }) {
+export default function ToolCard({ name, description, icon: Icon, color, colorStyle, category, isPremium, onClick }) {
   return (
     <motion.button
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       onClick={onClick}
-      className="group relative w-full text-left rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 cursor-pointer overflow-hidden focus:outline-none bg-[#111111] border border-[#2a2a2a] hover:bg-[#18181A] transition-colors duration-300"
+      className={`group relative w-full text-left rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 cursor-pointer overflow-hidden focus:outline-none bg-[#111111] border ${isPremium ? "border-purple-500/20" : "border-[#2a2a2a]"} hover:bg-[#18181A] transition-colors duration-300`}
     >
       {/* Subtle top border highlight on hover */}
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className={`absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-${isPremium ? "purple-500" : "white"}/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
       <div className="relative z-10 flex flex-col h-full">
         {/* Top section: Icon and Badge */}
@@ -21,7 +21,7 @@ export default function ToolCard({ name, description, icon: Icon, color, colorSt
            * falls back to Tailwind class string. Inline style is immune to purging.
            */}
           <div
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 relative"
             style={{ ...(colorStyle || {}), color: '#ffffff' }}
           >
             {!colorStyle && (
@@ -29,6 +29,12 @@ export default function ToolCard({ name, description, icon: Icon, color, colorSt
               <span className={`absolute inset-0 rounded-xl sm:rounded-2xl ${color}`} aria-hidden="true" />
             )}
             <Icon size={20} className="sm:w-[26px] sm:h-[26px] relative z-10" />
+            
+            {isPremium && (
+              <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-purple-500 to-amber-500 flex items-center justify-center border border-[#111] shadow-lg">
+                <Crown size={12} className="text-white" />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
