@@ -35,7 +35,7 @@ export default function FeedbackModal({ isOpen, onClose }) {
             "Accept": "application/json"
           },
           body: JSON.stringify({
-            _subject: `PDF MASTER Feedback - ${rating}/5 Stars`,
+            _subject: `PageDocx Feedback - ${rating}/5 Stars`,
             User_Name: user.displayName || "Anonymous",
             User_Email: user.email || "No email",
             Rating: `${rating} out of 5`,
@@ -105,7 +105,7 @@ export default function FeedbackModal({ isOpen, onClose }) {
                     </div>
                     <h3 className="text-4xl lg:text-5xl font-black text-white tracking-tight mb-6 leading-[1.1]">Your Voice <br/><span className="text-zinc-500">Matters.</span></h3>
                     <p className="text-zinc-400 font-medium leading-relaxed text-lg">
-                      We read every single piece of feedback. Help us understand what we are doing right and how we can improve PDF MASTER for everyone.
+                      We read every single piece of feedback. Help us understand what we are doing right and how we can improve PageDocx for everyone.
                     </p>
                   </div>
                   

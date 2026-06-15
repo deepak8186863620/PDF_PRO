@@ -9,14 +9,14 @@ export default function AboutUs({ onFeedbackClick }) {
     {
       name: "Deepak Prajapati",
       role: "Lead Developer & Founder",
-      bio: "Passionate about building high-performance web applications and document processing tools. Leading the vision for PDF Master Pro AI to make document management accessible to everyone.",
+      bio: "Passionate about building high-performance web applications and document processing tools. Leading the vision for PageDocx to make document management accessible to everyone.",
       image: deepakRealImg,
       socials: { github: "https://github.com/deepak8186863620", linkedin: "https://www.linkedin.com/in/deepak-prajapati-819b81327/", twitter: "#", email: "deepakprajapatid021@gmail.com" }
     },
     {
       name: "Nishath",
       role: "Lead UI/UX Designer",
-      bio: "Obsessed with creating beautiful, intuitive interfaces. Making sure every click in PDF Master Pro AI feels natural and looks stunning.",
+      bio: "Obsessed with creating beautiful, intuitive interfaces. Making sure every click in PageDocx feels natural and looks stunning.",
       image: deepakImg, // Replace with Sarah's image
       socials: { github: "#", linkedin: "#", twitter: "#", email: "#" }
     }
@@ -58,7 +58,7 @@ export default function AboutUs({ onFeedbackClick }) {
             transition={{ delay: 0.2 }}
             className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed"
           >
-            PDF Master Pro AI by Deepak Prajapati was born out of a simple need: making complex document tasks
+            PageDocx by Deepak Prajapati was born out of a simple need: making complex document tasks
             fast, secure, and incredibly easy. We're a small team with a big vision.
           </motion.p>
         </div>
@@ -139,7 +139,7 @@ export default function AboutUs({ onFeedbackClick }) {
             {
               icon: Coffee,
               title: "Built with Passion",
-              desc: "We love what we do. PDF MASTER is a labor of love, built with countless cups of coffee and dedication."
+              desc: "We love what we do. PageDocx is a labor of love, built with countless cups of coffee and dedication."
             }
           ].map((item, idx) => (
             <motion.div

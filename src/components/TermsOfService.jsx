@@ -42,14 +42,14 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
             <p className="leading-relaxed">
-              By accessing and using PDF Master ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time without prior notice.
+              By accessing and using PageDocx ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time without prior notice.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">2. Description of Service</h2>
             <p className="leading-relaxed mb-4">
-              PDF Master provides web-based tools for document processing, including but not limited to PDF conversion, compression, merging, splitting, and image processing.
+              PageDocx provides web-based tools for document processing, including but not limited to PDF conversion, compression, merging, splitting, and image processing.
             </p>
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
               <h3 className="text-white font-bold mb-3 flex items-center gap-2">
@@ -87,7 +87,7 @@ export default function TermsOfService() {
             <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl flex gap-4">
               <ShieldAlert size={24} className="text-red-400 shrink-0" />
               <p className="text-sm leading-relaxed text-red-200">
-                In no event shall PDF Master, its developers, or affiliates be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use the Service, including but not limited to loss of data, loss of profits, or business interruption.
+                In no event shall PageDocx, its developers, or affiliates be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use the Service, including but not limited to loss of data, loss of profits, or business interruption.
               </p>
             </div>
           </section>
@@ -95,7 +95,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">6. Intellectual Property</h2>
             <p className="leading-relaxed">
-              All content, features, and functionality of the Service are owned by PDF Master and are protected by international copyright, trademark, and other intellectual property laws. You retain full ownership of any documents you process using the Service.
+              All content, features, and functionality of the Service are owned by PageDocx and are protected by international copyright, trademark, and other intellectual property laws. You retain full ownership of any documents you process using the Service.
             </p>
           </section>
         </motion.div>

@@ -90,7 +90,7 @@ export default function Navbar({ onDashboardClick, onHomeClick, onAboutClick, on
                 </div>
               </div>
               <div className="flex flex-col items-start leading-none mr-1 sm:mr-2">
-                <span className="text-lg sm:text-xl font-800 text-white tracking-tight truncate">PDF Master Pro AI</span>
+                <span className="text-lg sm:text-xl font-800 text-white tracking-tight truncate">PageDocx</span>
               </div>
             </button>
 

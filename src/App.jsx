@@ -727,7 +727,7 @@ export default function App() {
                 <div id="how-it-works" className="max-w-[1600px] mx-auto mt-32 pt-20 border-t border-white/5">
                   <div className="text-center mb-16">
                     <span className="text-purple-400 font-bold uppercase tracking-widest text-sm mb-3 block">Simple Process</span>
-                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6">How PDF Master Works</h2>
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6">How PageDocx Works</h2>
                     <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Upload your document, apply your changes securely in your browser, and download the finished file instantly.</p>
                   </div>
                   
@@ -759,7 +759,7 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
-                      { name: "Sarah L.", role: "Legal Consultant", text: "PDF Master is incredible. It handles large contracts effortlessly, and knowing the e-signatures are secure gives my clients peace of mind." },
+                      { name: "Sarah L.", role: "Legal Consultant", text: "PageDocx is incredible. It handles large contracts effortlessly, and knowing the e-signatures are secure gives my clients peace of mind." },
                       { name: "James D.", role: "Software Engineer", text: "The fact that everything runs client-side makes it blazing fast. Finally, a PDF tool that respects user privacy and doesn't require a subscription." }
                     ].map((testimonial, idx) => (
                       <div key={idx} className="bg-[#111] border border-white/10 rounded-3xl p-8 flex flex-col justify-between">
@@ -796,7 +796,7 @@ export default function App() {
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
-                    title: 'PDF Master',
+                    title: 'PageDocx',
                     text: 'The best free AI PDF Editor & E-Signature platform.',
                     url: 'https://pdf-pro-dx2i.onrender.com/'
                   });

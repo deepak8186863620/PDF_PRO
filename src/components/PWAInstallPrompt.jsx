@@ -67,7 +67,7 @@ export default function PWAInstallPrompt() {
             <Download className="text-white" size={24} />
           </div>
           <div className="flex-1">
-            <h3 className="text-white font-bold text-sm mb-1">Install PDF Master Pro AI App</h3>
+            <h3 className="text-white font-bold text-sm mb-1">Install PageDocx App</h3>
             <p className="text-zinc-400 text-xs mb-3">Install our app for quick access and offline features.</p>
             <div className="flex items-center gap-2">
               <button

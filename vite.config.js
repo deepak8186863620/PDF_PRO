@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'PDF Master Pro AI',
-          short_name: 'PDF Master Pro AI',
+          name: 'PageDocx',
+          short_name: 'PageDocx',
           description: 'Professional PDF and image processing tools',
           theme_color: '#080c14',
           background_color: '#080c14',

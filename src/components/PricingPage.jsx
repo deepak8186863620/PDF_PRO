@@ -55,7 +55,7 @@ export default function PricingPage({ onBack, onAboutClick, onToolClick, onConta
         key: orderData.razorpayKeyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "PDF Master Pro AI",
+        name: "PageDocx",
         description: `${plan.name} Plan — ${plan.interval}`,
         order_id: orderData.orderId,
         prefill: {

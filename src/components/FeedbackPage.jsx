@@ -52,7 +52,7 @@ export default function FeedbackPage() {
             "Accept": "application/json"
           },
           body: JSON.stringify({
-            _subject: `PDF MASTER Feedback - ${category.toUpperCase()} - ${title}`,
+            _subject: `PageDocx Feedback - ${category.toUpperCase()} - ${title}`,
             User_Name: user.displayName || "Anonymous",
             User_Email: user.email || "No email",
             Category: category,
@@ -116,7 +116,7 @@ export default function FeedbackPage() {
             transition={{ delay: 0.2 }}
             className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed"
           >
-            PDF MASTER was built for you. Whether you've found a bug, have a brilliant idea for a new feature, or just want to tell us what you love, we're all ears.
+            PageDocx was built for you. Whether you've found a bug, have a brilliant idea for a new feature, or just want to tell us what you love, we're all ears.
           </motion.p>
         </div>
 
@@ -181,7 +181,7 @@ export default function FeedbackPage() {
                   <div className="space-y-4 max-w-lg mx-auto">
                     <h3 className="text-5xl font-black text-white tracking-tight">Thank You!</h3>
                     <p className="text-zinc-400 text-lg font-medium leading-relaxed">
-                      Your feedback has been successfully submitted. We review every submission to make PDF MASTER better for everyone.
+                      Your feedback has been successfully submitted. We review every submission to make PageDocx better for everyone.
                     </p>
                   </div>
                 </motion.div>

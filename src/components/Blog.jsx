@@ -30,9 +30,9 @@ const ARTICLES = [
           <li><strong>Record Retention:</strong> The signed document must be stored and reproducible.</li>
         </ul>
 
-        <h3 className="text-2xl font-bold text-white mt-8">Step-by-Step: How to Sign on PDF Master</h3>
+        <h3 className="text-2xl font-bold text-white mt-8">Step-by-Step: How to Sign on PageDocx</h3>
         <p>
-          PDF Master makes signing simple and secure. Here is how it works:
+          PageDocx makes signing simple and secure. Here is how it works:
         </p>
         <ol className="list-decimal pl-6 space-y-3">
           <li>
@@ -59,7 +59,7 @@ const ARTICLES = [
           <div>
             <h4 className="font-bold text-white mb-1">Privacy Guarantee</h4>
             <p className="text-sm">
-              PDF Master processes document edits and e-signatures directly inside your browser sandbox. Your signature is never uploaded to external servers unless you choose to share a document link.
+              PageDocx processes document edits and e-signatures directly inside your browser sandbox. Your signature is never uploaded to external servers unless you choose to share a document link.
             </p>
           </div>
         </div>
@@ -79,7 +79,7 @@ const ARTICLES = [
     content: (
       <div className="space-y-6 text-zinc-300">
         <p className="text-lg leading-relaxed text-zinc-200">
-          Traditional PDF viewers only show you static pixels. AI-powered editors like PDF Master treat documents as living, interactive databases. By integrating advanced machine learning, you can now interact with text like never before.
+          Traditional PDF viewers only show you static pixels. AI-powered editors like PageDocx treat documents as living, interactive databases. By integrating advanced machine learning, you can now interact with text like never before.
         </p>
 
         <h3 className="text-2xl font-bold text-white mt-8">What Can an AI PDF Editor Do?</h3>
@@ -122,7 +122,7 @@ const ARTICLES = [
           When choosing an online tool, consider these three metrics:
         </p>
         <ol className="list-decimal pl-6 space-y-3">
-          <li><strong>No Limits:</strong> Avoid apps that lock core features (like large uploads or AI credits) behind paid plans. PDF Master offers free unlimited processing.</li>
+          <li><strong>No Limits:</strong> Avoid apps that lock core features (like large uploads or AI credits) behind paid plans. PageDocx offers free unlimited processing.</li>
           <li><strong>Speed:</strong> A fast loading, client-side editor ensures you do not waste time waiting for uploads.</li>
           <li><strong>Mobile Compatibility:</strong> Look for web tools that work seamlessly on phones, so you can sign or edit on the go.</li>
         </ol>
@@ -200,7 +200,7 @@ const ARTICLES = [
 
         <h3 className="text-2xl font-bold text-white mt-8">1. Beware of Cloud Uploads</h3>
         <p>
-          Many free online PDF utilities upload your documents to their servers where they might sit indefinitely. Always use platforms like <strong>PDF Master</strong> that employ client-side processing, which processes pages locally in the browser memory, or guarantee auto-deletion within 30 minutes.
+          Many free online PDF utilities upload your documents to their servers where they might sit indefinitely. Always use platforms like <strong>PageDocx</strong> that employ client-side processing, which processes pages locally in the browser memory, or guarantee auto-deletion within 30 minutes.
         </p>
 
         <h3 className="text-2xl font-bold text-white mt-8">2. password Protect Sensitive Files</h3>
