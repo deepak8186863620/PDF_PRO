@@ -85,6 +85,26 @@ export default function PricingPage({ onBack, onAboutClick, onToolClick, onConta
 
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
+              // Update subscription in Firestore
+              try {
+                const subRef = doc(db, "users", user.uid, "subscription", "current");
+                const durationMonths = plan.id === "pro_yearly" ? 12 : 1;
+                const expiresAt = new Date();
+                expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+
+                await setDoc(subRef, {
+                  planId: plan.id,
+                  status: "active",
+                  updatedAt: Timestamp.now(),
+                  expiresAt: Timestamp.fromDate(expiresAt),
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                });
+              } catch (fsErr) {
+                console.error("Failed to update subscription in Firestore:", fsErr);
+                alert("Payment successful but failed to update subscription. Please contact support.");
+              }
+
               // Update local state
               window.location.reload();
             }
