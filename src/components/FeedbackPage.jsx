@@ -45,24 +45,20 @@ export default function FeedbackPage() {
       });
 
       try {
-        await fetch("https://formsubmit.co/ajax/deepakprajapati3227@gmail.com", {
+        await fetch("/api/submit-feedback", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            _subject: `PageDocx Feedback - ${category.toUpperCase()} - ${title}`,
-            User_Name: user.displayName || "Anonymous",
-            User_Email: user.email || "No email",
-            Category: category,
-            Rating: rating > 0 ? `${rating} out of 5` : "N/A",
-            Title: title,
-            Message: comment || "No comments provided",
+            userName: user.displayName || "Anonymous",
+            userEmail: user.email,
+            category,
+            rating,
+            title,
+            comment,
           })
         });
       } catch (emailError) {
-        console.error("Failed to send email notification", emailError);
+        console.error("Failed to trigger email notification", emailError);
       }
 
       setIsSuccess(true);

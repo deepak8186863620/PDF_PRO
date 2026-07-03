@@ -9,6 +9,7 @@ import {
 import { auth, db, collection, query, where, orderBy, onSnapshot, handleFirestoreError, OperationType } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export default function Dashboard({ onNavigateHome, onSelectTool }) {
   const [user] = useAuthState(auth);
@@ -64,7 +65,19 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
     item.toolId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Files older than 30 minutes are auto-deleted by the server
+  const FILE_TTL_MINUTES = 30;
+  const isFileExpired = (item) => {
+    if (!item.timestamp?.toDate) return false;
+    const ageMs = Date.now() - item.timestamp.toDate().getTime();
+    return ageMs > FILE_TTL_MINUTES * 60 * 1000;
+  };
+
   const handleShare = async (item) => {
+    if (isFileExpired(item)) {
+      toast.error('This file has expired and been auto-deleted. Please process it again to get a new download link.');
+      return;
+    }
     if (navigator.share) {
       try {
         await navigator.share({
@@ -78,9 +91,10 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
     } else {
       try {
         await navigator.clipboard.writeText(item.downloadUrl);
-        alert('Link copied to clipboard!');
+        toast.success('Link copied to clipboard!');
       } catch (err) {
         console.error('Failed to copy text: ', err);
+        toast.error('Failed to copy link.');
       }
     }
   };
@@ -264,7 +278,10 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                            <button
-                             onClick={() => { const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l); }}
+                             onClick={() => {
+                               if (isFileExpired(item)) { toast.error('File expired. Please re-process to download again.'); return; }
+                               const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l);
+                             }}
                              className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                              title="Download"
                            >
@@ -320,7 +337,10 @@ export default function Dashboard({ onNavigateHome, onSelectTool }) {
                         <Share2 size={16} />
                       </button>
                       <button
-                        onClick={() => { const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l); }}
+                        onClick={() => {
+                          if (isFileExpired(item)) { toast.error('File expired. Please re-process to download again.'); return; }
+                          const l = document.createElement('a'); l.href = item.downloadUrl; l.setAttribute('download', item.fileName); document.body.appendChild(l); l.click(); document.body.removeChild(l);
+                        }}
                         className="p-2 text-zinc-400 hover:text-white bg-white/5 rounded-lg"
                         title="Download"
                       >

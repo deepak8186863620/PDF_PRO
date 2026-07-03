@@ -26,24 +26,20 @@ export default function FeedbackModal({ isOpen, onClose }) {
         timestamp: Timestamp.now()
       });
 
-      // Send email notification automatically via FormSubmit
+      // Send email notification automatically via internal API
       try {
-        await fetch("https://formsubmit.co/ajax/deepakprajapati3227@gmail.com", {
+        await fetch("/api/submit-feedback", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            _subject: `PageDocx Feedback - ${rating}/5 Stars`,
-            User_Name: user.displayName || "Anonymous",
-            User_Email: user.email || "No email",
-            Rating: `${rating} out of 5`,
-            Message: comment || "No comments provided",
+            userName: user.displayName || "Anonymous",
+            userEmail: user.email,
+            rating,
+            comment,
           })
         });
       } catch (emailError) {
-        console.error("Failed to send email notification", emailError);
+        console.error("Failed to trigger email notification", emailError);
       }
 
       setIsSuccess(true);

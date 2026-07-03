@@ -95,7 +95,7 @@ const logger = winston.createLogger({
 });
 
 /* ─────────────── CONSTANTS ─────────────── */
-const PORT = 3000;
+const PORT = process.env.PORT || 14833;
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 const ESIGN_DIR = path.join(UPLOADS_DIR, "esign");
 const FILE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -358,9 +358,171 @@ async function callGeminiStream(model, payload, onChunk, retries = 4) {
 
 
 
-/* ─────────────── RATE LIMITERS ─────────────── */
-const uploadLimiter = rateLimit({ windowMs: 60_000, max: 60, message: { error: "Too many uploads, slow down." } });
-const aiLimiter    = rateLimit({ windowMs: 60_000, max: 30, message: { error: "Too many AI requests." } });
+/* ═══════════════════════════════════════════════════════════════════
+   RATE LIMITING & ABUSE PROTECTION
+   ── Layered defence to prevent API-key abuse, billing attacks, and
+      brute-force hammering of every external-API endpoint.
+
+   Strategy:
+     1. Burst limiter  — short window, tight cap (express-rate-limit)
+     2. Daily per-IP cap — hard daily quota stored in memory; auto-resets
+     3. Suspicious-IP ban — if an IP burns through the daily cap it gets
+        banned for TEMP_BAN_HOURS hours
+     4. Granular limiters per service (Gemini, Adobe, Razorpay, upload)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Tuneable constants (adjust to your budget / API quotas) ── */
+const AI_BURST_MAX       = 10;   // max AI requests per IP per minute
+const AI_DAILY_MAX       = 80;   // hard daily cap per IP for ALL AI calls
+const ADOBE_BURST_MAX    = 5;    // Adobe calls are expensive — keep low
+const ADOBE_DAILY_MAX    = 20;   // Adobe daily cap per IP
+const UPLOAD_BURST_MAX   = 20;   // upload requests per minute
+const PAYMENT_BURST_MAX  = 10;   // payment endpoint per minute
+const GENERAL_BURST_MAX  = 100;  // general API burst
+const TEMP_BAN_HOURS     = 6;    // hours an abusive IP is banned
+const WINDOW_MS          = 60_000; // 1 minute rolling window
+
+/* ── In-memory stores (use Redis in production for multi-instance) ── */
+const dailyUsage = new Map();   // ip → { date, aiCount, adobeCount }
+const bannedIPs  = new Map();   // ip → { until, reason }
+
+/** Returns today's date string "YYYY-MM-DD" in UTC */
+function todayUTC() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Returns or initialises the daily counter object for an IP */
+function getDailyRecord(ip) {
+  const today = todayUTC();
+  let rec = dailyUsage.get(ip);
+  if (!rec || rec.date !== today) {
+    rec = { date: today, aiCount: 0, adobeCount: 0 };
+    dailyUsage.set(ip, rec);
+  }
+  return rec;
+}
+
+/** Resolve the real client IP even behind proxies / Render */
+function getClientIP(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.socket?.remoteAddress || req.ip || "unknown";
+}
+
+/* ── Standard handler for rate-limit rejections ── */
+function rateLimitHandler(req, res, _next, options) {
+  const ip = getClientIP(req);
+  logger.warn(`[RateLimit] ${ip} → ${req.method} ${req.path} | ${options.message?.error || "Too many requests"}`);
+  res
+    .status(429)
+    .set("Retry-After", Math.ceil(options.windowMs / 1000))
+    .json({ error: options.message?.error || "Too many requests. Please slow down." });
+}
+
+/* ── Generic helper to create a limiter with our shared handler ── */
+function makeLimiter(windowMs, max, errorMsg) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,   // Return rate-limit info in RateLimit-* headers
+    legacyHeaders:   false,
+    skipSuccessfulRequests: false,
+    keyGenerator: getClientIP,
+    handler: rateLimitHandler,
+    message: { error: errorMsg },
+  });
+}
+
+/* ─── Burst limiters (express-rate-limit, sliding window) ─── */
+const uploadLimiter  = makeLimiter(WINDOW_MS,       UPLOAD_BURST_MAX,  "Too many uploads. Max 20 per minute per IP.");
+const aiLimiter      = makeLimiter(WINDOW_MS,       AI_BURST_MAX,      "Too many AI requests. Max 10 per minute per IP.");
+const adobeLimiter   = makeLimiter(WINDOW_MS,       ADOBE_BURST_MAX,   "Too many Adobe PDF conversions. Max 5 per minute per IP.");
+const paymentLimiter = makeLimiter(WINDOW_MS,       PAYMENT_BURST_MAX, "Too many payment requests.");
+const generalLimiter = makeLimiter(WINDOW_MS * 2,   GENERAL_BURST_MAX, "Too many requests. Slow down.");
+
+/* ─── Daily hard-cap middleware for AI routes ─── */
+function aiDailyCap(req, res, next) {
+  const ip  = getClientIP(req);
+
+  // Check temporary ban first
+  const ban = bannedIPs.get(ip);
+  if (ban) {
+    if (Date.now() < ban.until) {
+      const remaining = Math.ceil((ban.until - Date.now()) / 60_000);
+      logger.warn(`[BanBlock] Banned IP ${ip} attempted ${req.path} — ${remaining}m remaining`);
+      return res
+        .status(429)
+        .set("Retry-After", Math.ceil((ban.until - Date.now()) / 1000))
+        .json({ error: `Your IP has been temporarily blocked due to excessive requests. Try again in ${remaining} minute(s). Reason: ${ban.reason}` });
+    } else {
+      bannedIPs.delete(ip);
+      logger.info(`[BanLift] Temporary ban on ${ip} lifted`);
+    }
+  }
+
+  const rec = getDailyRecord(ip);
+  rec.aiCount++;
+
+  if (rec.aiCount > AI_DAILY_MAX * 1.5) {
+    // Heavy abuser — apply temp ban
+    bannedIPs.set(ip, {
+      until:  Date.now() + TEMP_BAN_HOURS * 60 * 60 * 1000,
+      reason: `Exceeded ${AI_DAILY_MAX * 1.5} AI calls in a single day`,
+    });
+    logger.warn(`[BanSet] IP ${ip} banned for ${TEMP_BAN_HOURS}h — excessive AI usage`);
+    return res.status(429).json({ error: `Blocked for ${TEMP_BAN_HOURS} hours: Excessive AI API usage detected. This protects service billing from abuse.` });
+  }
+
+  if (rec.aiCount > AI_DAILY_MAX) {
+    logger.warn(`[DailyCap] IP ${ip} hit AI daily cap (${rec.aiCount}/${AI_DAILY_MAX}) on ${req.path}`);
+    return res.status(429).json({ error: `Daily AI request limit reached (${AI_DAILY_MAX} requests/day per IP). Resets at midnight UTC.` });
+  }
+
+  next();
+}
+
+/* ─── Daily hard-cap middleware for Adobe routes ─── */
+function adobeDailyCap(req, res, next) {
+  const ip  = getClientIP(req);
+  const rec = getDailyRecord(ip);
+  rec.adobeCount++;
+
+  if (rec.adobeCount > ADOBE_DAILY_MAX) {
+    logger.warn(`[DailyCap] IP ${ip} hit Adobe daily cap (${rec.adobeCount}/${ADOBE_DAILY_MAX}) on ${req.path}`);
+    return res.status(429).json({ error: `Daily Adobe PDF conversion limit reached (${ADOBE_DAILY_MAX}/day per IP). Resets at midnight UTC.` });
+  }
+  next();
+}
+
+/* ─── Request body size guard for AI endpoints ─── */
+function aiBodySizeGuard(req, res, next) {
+  const MAX_AI_BODY_BYTES = 2 * 1024 * 1024; // 2 MB text limit
+  const bodyStr = JSON.stringify(req.body || {});
+  if (Buffer.byteLength(bodyStr) > MAX_AI_BODY_BYTES) {
+    const ip = getClientIP(req);
+    logger.warn(`[BodyGuard] IP ${ip} sent oversized AI body (${Buffer.byteLength(bodyStr)} bytes) to ${req.path}`);
+    return res.status(413).json({ error: "Request body too large for AI endpoint. Maximum 2 MB." });
+  }
+  next();
+}
+
+/* ─── Cleanup: purge stale daily records every hour ─── */
+setInterval(() => {
+  const today = todayUTC();
+  for (const [ip, rec] of dailyUsage.entries()) {
+    if (rec.date !== today) dailyUsage.delete(ip);
+  }
+  // Purge expired bans
+  for (const [ip, ban] of bannedIPs.entries()) {
+    if (Date.now() >= ban.until) bannedIPs.delete(ip);
+  }
+}, 60 * 60 * 1000);
+
+/* ─── Convenience stacks ─── */
+// Full AI protection: burst + daily cap + body size
+const aiProtect    = [aiLimiter, aiDailyCap, aiBodySizeGuard];
+// Adobe protection: burst + daily cap
+const adobeProtect = [adobeLimiter, adobeDailyCap];
 
 /* ─────────────── EXPRESS SETUP ─────────────── */
 async function startServer() {
@@ -375,6 +537,9 @@ async function startServer() {
   app.use(express.json({ limit: MAX_UPLOAD_SIZE }));
   app.use(express.urlencoded({ extended: true, limit: MAX_UPLOAD_SIZE }));
   app.use(morgan("dev"));
+
+  // Global burst limiter — protects all routes from generic flood attacks
+  app.use("/api", generalLimiter);
 
   // Compression for JSON responses
   app.use((req, res, next) => {
@@ -394,9 +559,30 @@ async function startServer() {
     next();
   });
 
-  // Health check endpoint
+  // Health check endpoint (no rate limit — used by uptime monitors)
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  /* ══════════════════════════════════════════
+     SECURITY STATUS — rate-limit monitoring
+  ══════════════════════════════════════════ */
+  app.get("/api/security/status", (_req, res) => {
+    const today = todayUTC();
+    const activeIPs    = [...dailyUsage.entries()].filter(([, r]) => r.date === today).length;
+    const bannedCount  = bannedIPs.size;
+    const topConsumers = [...dailyUsage.entries()]
+      .filter(([, r]) => r.date === today)
+      .sort((a, b) => (b[1].aiCount + b[1].adobeCount) - (a[1].aiCount + a[1].adobeCount))
+      .slice(0, 5)
+      .map(([ip, r]) => ({ ip: ip.replace(/(\d+\.\d+)\..*/, "$1.x.x"), aiCount: r.aiCount, adobeCount: r.adobeCount }));
+    res.json({
+      date: today,
+      activeIPs,
+      bannedIPs: bannedCount,
+      limits: { aiDailyMax: AI_DAILY_MAX, aiBurstPerMin: AI_BURST_MAX, adobeDailyMax: ADOBE_DAILY_MAX, adobeBurstPerMin: ADOBE_BURST_MAX, tempBanHours: TEMP_BAN_HOURS },
+      topConsumers,
+    });
   });
 
   /* ══════════════════════════════════════════
@@ -605,7 +791,7 @@ async function startServer() {
   /* ══════════════════════════════════════════
      PDF — COMPRESS
   ══════════════════════════════════════════ */
-  app.post("/api/pdf/compress", async (req, res) => {
+  app.post("/api/pdf/compress", ...adobeProtect, async (req, res) => {
     try {
       const { fileId, compressionLevel = "MEDIUM" } = req.body;
       const filePath = path.join(UPLOADS_DIR, fileId);
@@ -1017,7 +1203,7 @@ async function startServer() {
   /* ══════════════════════════════════════════
      PDF — TO WORD (.docx)
   ══════════════════════════════════════════ */
-  app.post("/api/pdf/to-word", async (req, res) => {
+  app.post("/api/pdf/to-word", ...adobeProtect, async (req, res) => {
     try {
       const { fileId } = req.body;
       const filePath = path.join(UPLOADS_DIR, fileId);
@@ -1088,7 +1274,7 @@ async function startServer() {
   /* ══════════════════════════════════════════
      PDF — WORD TO PDF
   ══════════════════════════════════════════ */
-  app.post("/api/pdf/word-to-pdf", async (req, res) => {
+  app.post("/api/pdf/word-to-pdf", ...adobeProtect, async (req, res) => {
     try {
       const { fileId } = req.body;
       const filePath = path.join(UPLOADS_DIR, fileId);
@@ -1368,7 +1554,7 @@ async function startServer() {
   /* ══════════════════════════════════════════
      PDF — TO JPG (LOCAL)
   ══════════════════════════════════════════ */
-  app.post("/api/pdf/to-jpg", async (req, res) => {
+  app.post("/api/pdf/to-jpg", ...adobeProtect, async (req, res) => {
     try {
       const { fileId } = req.body;
       const filePath = path.join(UPLOADS_DIR, fileId);
@@ -1511,7 +1697,7 @@ async function startServer() {
   /* ══════════════════════════════════════════
      AI — SUMMARIZE
   ══════════════════════════════════════════ */
-  app.post("/api/ai/summarize", aiLimiter, async (req, res) => {
+  app.post("/api/ai/summarize", ...aiProtect, async (req, res) => {
     try {
       let { text, fileId } = req.body;
       
@@ -1575,7 +1761,7 @@ ${text.substring(0, 45000)}`;
   /* ══════════════════════════════════════════
      AI — SUMMARIZE (STREAMING)
   ══════════════════════════════════════════ */
-  app.post("/api/ai/summarize-stream", aiLimiter, async (req, res) => {
+  app.post("/api/ai/summarize-stream", ...aiProtect, async (req, res) => {
     try {
       let { text, fileId } = req.body;
 
@@ -1643,7 +1829,7 @@ ${text.substring(0, 60000)}`;
   /* ══════════════════════════════════════════
      AI — OCR
   ══════════════════════════════════════════ */
-  app.post("/api/ai/ocr", aiLimiter, async (req, res) => {
+  app.post("/api/ai/ocr", ...aiProtect, async (req, res) => {
     try {
       const { base64, mimeType } = req.body;
       if (!base64) return res.status(400).json({ error: "No data provided." });
@@ -1659,7 +1845,7 @@ ${text.substring(0, 60000)}`;
   /* ══════════════════════════════════════════
      AI — OCR STRUCTURED
   ══════════════════════════════════════════ */
-  app.post("/api/ai/ocr-structured", aiLimiter, async (req, res) => {
+  app.post("/api/ai/ocr-structured", ...aiProtect, async (req, res) => {
     try {
       const { base64, mimeType } = req.body;
       if (!base64) return res.status(400).json({ error: "No data provided." });
@@ -1675,7 +1861,7 @@ ${text.substring(0, 60000)}`;
   /* ══════════════════════════════════════════
      AI — CHAT
   ══════════════════════════════════════════ */
-  app.post("/api/ai/chat", aiLimiter, async (req, res) => {
+  app.post("/api/ai/chat", ...aiProtect, async (req, res) => {
     try {
       const { message, context, history = [] } = req.body;
       if (!message || !message.trim()) return res.status(400).json({ error: "No message provided." });
@@ -1994,14 +2180,28 @@ Your behaviour rules:
   setInterval(async () => {
     try {
       const now = Date.now();
-      const files = await fsPromises.readdir(UPLOADS_DIR);
-      await Promise.all(files.map(async file => {
-        const fp = path.join(UPLOADS_DIR, file);
-        const stat = await fsPromises.stat(fp).catch(() => null);
-        if (stat && stat.isFile() && now - stat.mtimeMs > FILE_TTL_MS) {
-          await fsPromises.unlink(fp).catch(() => {});
+      
+      // Helper function to clean up a specific directory
+      const cleanDir = async (dirPath) => {
+        try {
+          const files = await fsPromises.readdir(dirPath);
+          await Promise.all(files.map(async file => {
+            const fp = path.join(dirPath, file);
+            const stat = await fsPromises.stat(fp).catch(() => null);
+            if (stat && stat.isFile() && now - stat.mtimeMs > FILE_TTL_MS) {
+              await fsPromises.unlink(fp).catch(() => {});
+            }
+          }));
+        } catch (e) {
+          logger.warn(`Failed to clean directory ${dirPath}: ` + e.message);
         }
-      }));
+      };
+
+      // Clean both normal uploads and e-signed documents
+      await Promise.all([
+        cleanDir(UPLOADS_DIR),
+        cleanDir(ESIGN_DIR)
+      ]);
 
       for (const [key, val] of cache.entries()) {
         if (Date.now() - val.ts > val.ttl) cache.delete(key);
@@ -2062,6 +2262,68 @@ Your behaviour rules:
   });
 
   /* ══════════════════════════════════════════
+     FEEDBACK SUBMISSION & THANK YOU EMAIL
+  ══════════════════════════════════════════ */
+  app.post("/api/submit-feedback", async (req, res) => {
+    try {
+      const { userEmail, userName, category, rating, title, comment } = req.body;
+      
+      const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+      
+      if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !ADMIN_EMAIL) {
+        return res.status(500).json({ error: "Email configuration missing on server." });
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT || 587,
+        secure: SMTP_PORT === "465",
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      });
+
+      // 1. Send feedback to Admin
+      await transporter.sendMail({
+        from: `"PageDocx Feedback" <${SMTP_USER}>`,
+        to: ADMIN_EMAIL,
+        subject: `New Feedback: ${category ? category.toUpperCase() : rating + ' Stars'}`,
+        html: `
+          <h2>New Feedback Received</h2>
+          <p><strong>User:</strong> ${userName || "Anonymous"} (${userEmail || "No email"})</p>
+          ${category ? `<p><strong>Category:</strong> ${category}</p>` : ''}
+          ${rating ? `<p><strong>Rating:</strong> ${rating}/5</p>` : ''}
+          ${title ? `<p><strong>Title:</strong> ${title}</p>` : ''}
+          <p><strong>Comment:</strong></p>
+          <blockquote style="border-left: 4px solid #ccc; padding-left: 10px;">${comment || "No comment"}</blockquote>
+        `
+      });
+
+      // 2. Send 'Thank You' email to the User (if they provided an email)
+      if (userEmail) {
+        await transporter.sendMail({
+          from: `"PageDocx Team" <${SMTP_USER}>`,
+          to: userEmail,
+          subject: "Thank You for Your Feedback!",
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+              <h2>Thank You, ${userName || "there"}!</h2>
+              <p>We've received your feedback and we truly appreciate you taking the time to help us improve PageDocx.</p>
+              <p>Our team reads every single piece of feedback to shape the future of our document tools.</p>
+              <br/>
+              <p>Best regards,</p>
+              <p><strong>The PageDocx Team</strong></p>
+            </div>
+          `
+        });
+      }
+
+      res.json({ success: true, message: "Feedback submitted and emails sent." });
+    } catch (err) {
+      logger.error("Failed to send feedback emails: " + err.message);
+      res.status(500).json({ error: "Failed to send emails." });
+    }
+  });
+
+  /* ══════════════════════════════════════════
      RAZORPAY PAYMENT SYSTEM
   ══════════════════════════════════════════ */
   let Razorpay;
@@ -2071,7 +2333,7 @@ Your behaviour rules:
     logger.error("Razorpay module not found. Run npm install razorpay.");
   }
 
-  app.post("/api/payment/create-order", async (req, res) => {
+  app.post("/api/payment/create-order", paymentLimiter, async (req, res) => {
     try {
       const { planId, userId, email, name } = req.body;
       
@@ -2124,7 +2386,7 @@ Your behaviour rules:
     }
   });
 
-  app.post("/api/payment/verify", async (req, res) => {
+  app.post("/api/payment/verify", paymentLimiter, async (req, res) => {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, planId } = req.body;
       const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
@@ -2168,7 +2430,7 @@ Your behaviour rules:
     try {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
-        server: { middlewareMode: true, hmr: { port: 3001 } },
+        server: { middlewareMode: true, hmr: { port: 14834 } },
         appType: "spa",
       });
       app.use(vite.middlewares);
@@ -2217,6 +2479,13 @@ Your behaviour rules:
     logger.info(`🚀 Server ready at http://localhost:${PORT}`);
     logger.info(`📁 Uploads: ${UPLOADS_DIR}`);
     logger.info(`🔑 Gemini AI: ${process.env.GEMINI_API_KEY ? "✓ Configured" : "✗ Missing GEMINI_API_KEY"}`);
+    logger.info(`🛡️  Rate limits active:`);
+    logger.info(`    • AI (Gemini/OCR/Chat) : burst ${AI_BURST_MAX}/min  |  daily ${AI_DAILY_MAX}/IP  |  ban after ${AI_DAILY_MAX * 1.5}/day`);
+    logger.info(`    • Adobe PDF services   : burst ${ADOBE_BURST_MAX}/min  |  daily ${ADOBE_DAILY_MAX}/IP`);
+    logger.info(`    • Upload               : burst ${UPLOAD_BURST_MAX}/min`);
+    logger.info(`    • Payment              : burst ${PAYMENT_BURST_MAX}/min`);
+    logger.info(`    • General API          : burst ${GENERAL_BURST_MAX} / 2 min`);
+    logger.info(`    • Temp ban duration    : ${TEMP_BAN_HOURS}h  |  Monitor: GET /api/security/status`);
 
     /* ─── KEEP-ALIVE SELF-PING (prevents Render free-tier spin-down) ─── */
     const RENDER_URL = process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL;

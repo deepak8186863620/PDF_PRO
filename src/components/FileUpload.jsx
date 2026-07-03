@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, CheckCircle2 } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, File as FileIcon, CheckCircle2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 
@@ -126,6 +126,11 @@ export default function FileUpload({
               {Object.values(accept).flat().join("  ·  ")}
             </p>
           )}
+
+          <div className="mt-5 flex items-center justify-center gap-2 text-emerald-500/90 text-[13px] font-semibold bg-emerald-500/10 py-1.5 px-3 rounded-full w-fit mx-auto border border-emerald-500/20">
+            <Shield size={14} />
+            <span>Files are encrypted and auto-deleted after 30 minutes</span>
+          </div>
         </div>
       </div>
 

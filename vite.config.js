@@ -55,7 +55,6 @@ export default defineConfig(({ mode }) => {
       })
     ],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'https://pdf-pro-dx2i.onrender.com'),
     },
     resolve: {
@@ -69,7 +68,7 @@ export default defineConfig(({ mode }) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: 'http://localhost:14833',
           changeOrigin: true,
         },
       },

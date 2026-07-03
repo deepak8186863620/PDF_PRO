@@ -174,7 +174,7 @@ export default function ToolView({ tool, onBack }) {
         : "Failed to get AI response: " + errMsg;
       toast.error(userFriendly);
       // Remove the optimistic user message if AI totally failed
-      setChatMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
+      setChatMessages(prev => prev.slice(0, -1)); // remove last (optimistic user message)
     } finally {
       setIsChatting(false);
     }
@@ -1412,7 +1412,7 @@ export default function ToolView({ tool, onBack }) {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <button onClick={downloadResult} disabled={isStreaming || !summary} className="btn-primary flex-1 justify-center py-3 disabled:opacity-40 disabled:cursor-not-allowed">
+                <button onClick={downloadResult} disabled={isStreaming || (!summary && !ocrText)} className="btn-primary flex-1 justify-center py-3 disabled:opacity-40 disabled:cursor-not-allowed">
                   <Download size={16} />
                   Download {summary ? "Summary" : "Text"}
                 </button>
