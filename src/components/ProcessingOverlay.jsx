@@ -1,9 +1,12 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Loader2, FileText, CheckCircle2 } from "lucide-react";
 
-export default function ProcessingOverlay({ status = "Processing...", progress }) {
-  return (
+export default function ProcessingOverlay({ status = "Processing...", progress, detail }) {
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -38,9 +41,14 @@ export default function ProcessingOverlay({ status = "Processing...", progress }
           <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight uppercase">
             {status}
           </h2>
-          <p className="text-zinc-400 text-sm md:text-base mb-12 font-medium max-w-xs mx-auto leading-relaxed">
+          <p className="text-zinc-400 text-sm md:text-base mb-4 font-medium max-w-xs mx-auto leading-relaxed">
             We're using high-performance algorithms to process your document. Please don't close this window.
           </p>
+          {detail && (
+            <p className="text-white font-black text-sm mb-8 bg-white/5 border border-white/10 rounded-full px-5 py-2">
+              {detail}
+            </p>
+          )}
 
           <div className="relative h-4 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800 shadow-inner">
             <motion.div
@@ -86,6 +94,7 @@ export default function ProcessingOverlay({ status = "Processing...", progress }
           </div>
         </div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

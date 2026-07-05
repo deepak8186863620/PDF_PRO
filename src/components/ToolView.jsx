@@ -50,6 +50,8 @@ export default function ToolView({ tool, onBack }) {
   const [processingStatus, setProcessingStatus] = useState("Processing your files...");
   const [isStreaming, setIsStreaming] = useState(false);
   const [user] = useAuthState(auth);
+  // Scan-to-PDF chunked progress
+  const [scanProgress, setScanProgress] = useState({ uploaded: 0, converted: 0, total: 0 });
   
   // Premium Hook
   const { checkCanUse, trackUsage } = usePremium();
@@ -239,6 +241,7 @@ export default function ToolView({ tool, onBack }) {
   };
 
   const processFiles = async () => {
+    let progressInterval;
     if (files.length === 0) {
       toast.error("Please select at least one file.");
       return;
@@ -313,6 +316,19 @@ export default function ToolView({ tool, onBack }) {
       
       setProgress(60);
       
+      // For long-running API tasks, simulate progress to improve UX
+      if (["pdf-to-word", "word-to-pdf", "excel-to-pdf", "pptx-to-pdf", "ocr-pdf", "summarize-pdf", "pdf-to-jpg"].includes(tool.id)) {
+        let currentProgress = 60;
+        progressInterval = setInterval(() => {
+          currentProgress += Math.floor(Math.random() * 3) + 1;
+          if (currentProgress >= 95) {
+            currentProgress = 95;
+            clearInterval(progressInterval);
+          }
+          setProgress(currentProgress);
+        }, 1200);
+      }
+      
       let processRes;
       if (tool.id === "merge-pdf") {
         processRes = await fetch("/api/pdf/merge", {
@@ -345,7 +361,7 @@ export default function ToolView({ tool, onBack }) {
             pagesToProcess: pagesToProcess
           }),
         });
-      } else if (tool.id === "jpg-to-pdf" || tool.id === "scan-to-pdf") {
+      } else if (tool.id === "jpg-to-pdf") {
         processRes = await fetch("/api/pdf/jpg-to-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -627,7 +643,36 @@ export default function ToolView({ tool, onBack }) {
         const errorData = await processRes.json().catch(() => ({}));
         throw new Error(errorData.error || "Processing failed");
       }
-      const result = await processRes.json();
+      
+      const responseData = await processRes.json();
+      let result;
+      
+      // If backend returns a jobId, switch to real-time polling mode
+      if (responseData.jobId) {
+        if (progressInterval) clearInterval(progressInterval); // stop fake interval
+        
+        while (true) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          const jobRes = await fetch(`/api/job-status/${responseData.jobId}`);
+          
+          if (!jobRes.ok) throw new Error("Failed to fetch job status.");
+          const jobData = await jobRes.json();
+          
+          if (jobData.status === "error") {
+            throw new Error(jobData.error || "Background processing failed");
+          }
+          
+          if (jobData.progress) setProgress(jobData.progress);
+          if (jobData.message) setProcessingStatus(jobData.message);
+          
+          if (jobData.status === "completed") {
+            result = jobData.result;
+            break;
+          }
+        }
+      } else {
+        result = responseData;
+      }
       
       setProgress(100);
       setTimeout(() => {
@@ -660,6 +705,127 @@ export default function ToolView({ tool, onBack }) {
       setIsStreaming(false);
       trackError('ToolView', error.message);
       toast.error(error.message || "An error occurred during processing.");
+    } finally {
+      if (progressInterval) clearInterval(progressInterval);
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────────
+     CHUNKED SCAN-TO-PDF  —  supports 200+ images
+     Pipeline:
+       1. Split files into chunks of CHUNK_SIZE
+       2. Upload each chunk (3 parallel uploads)
+       3. Convert each uploaded chunk → partial PDF
+       4. Merge all partial PDFs → final PDF
+  ───────────────────────────────────────────────────────── */
+  const processScanToPdf = async () => {
+    if (files.length === 0) { toast.error("Please add at least one photo."); return; }
+
+    const CHUNK_SIZE = 20;          // images per chunk
+    const UPLOAD_CONCURRENCY = 3;  // parallel chunk uploads
+    const total = files.length;
+    setScanProgress({ uploaded: 0, converted: 0, total });
+    setIsProcessing(true);
+    setProgress(2);
+    setProcessingStatus(`Preparing ${total} photo${total > 1 ? 's' : ''} for PDF…`);
+    trackToolUsage(tool.id, 'process_start', { file_count: total });
+
+    try {
+      // ── 1. Split into chunks ──
+      const chunks = [];
+      for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+        chunks.push(files.slice(i, i + CHUNK_SIZE));
+      }
+
+      let uploadedCount = 0;
+      const chunkUploadResults = new Array(chunks.length); // maintain order
+
+      // ── 2. Upload chunks with limited concurrency ──
+      setProcessingStatus(`Uploading ${total} photos in ${chunks.length} batches…`);
+      for (let start = 0; start < chunks.length; start += UPLOAD_CONCURRENCY) {
+        const batch = chunks.slice(start, start + UPLOAD_CONCURRENCY);
+        await Promise.all(
+          batch.map(async (chunkFiles, batchIdx) => {
+            const globalIdx = start + batchIdx;
+            const fd = new FormData();
+            chunkFiles.forEach((f) => fd.append("files", f));
+
+            const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
+            if (!uploadRes.ok) throw new Error(`Upload failed for batch ${globalIdx + 1}`);
+            const { files: uploaded } = await uploadRes.json();
+            chunkUploadResults[globalIdx] = uploaded.map((f) => f.id);
+
+            uploadedCount += chunkFiles.length;
+            setScanProgress((p) => ({ ...p, uploaded: uploadedCount }));
+            setProgress(Math.round(5 + (uploadedCount / total) * 40));
+          })
+        );
+      }
+
+      // ── 3. Convert each chunk to a partial PDF ──
+      setProcessingStatus(`Converting ${chunks.length} batch${chunks.length > 1 ? 'es' : ''} to PDF…`);
+      let convertedCount = 0;
+      const chunkPdfIds = new Array(chunks.length);
+
+      for (let start = 0; start < chunks.length; start += UPLOAD_CONCURRENCY) {
+        const batch = chunkUploadResults.slice(start, start + UPLOAD_CONCURRENCY);
+        await Promise.all(
+          batch.map(async (fileIds, batchIdx) => {
+            const globalIdx = start + batchIdx;
+            const res = await fetch("/api/pdf/jpg-to-pdf-chunk", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ fileIds, chunkIndex: globalIdx }),
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || `Chunk ${globalIdx + 1} conversion failed`);
+            }
+            const { id } = await res.json();
+            chunkPdfIds[globalIdx] = id;
+            convertedCount += chunks[globalIdx].length;
+            setScanProgress((p) => ({ ...p, converted: convertedCount }));
+            setProgress(Math.round(45 + (convertedCount / total) * 45));
+          })
+        );
+      }
+
+      // ── 4. Merge all chunk PDFs → final ──
+      setProcessingStatus(`Merging ${chunkPdfIds.length} chunk${chunkPdfIds.length > 1 ? 's' : ''} into your PDF…`);
+      setProgress(92);
+
+      let processRes;
+      if (chunkPdfIds.length === 1) {
+        // Only one chunk — no merge needed
+        processRes = { ok: true, json: async () => ({ id: chunkPdfIds[0], name: "scanned-document.pdf", pageCount: total }) };
+      } else {
+        processRes = await fetch("/api/pdf/merge-chunks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chunkIds: chunkPdfIds }),
+        });
+      }
+
+      if (!processRes.ok) {
+        const err = await processRes.json().catch(() => ({}));
+        throw new Error(err.error || "Final merge failed");
+      }
+      const result = await processRes.json();
+
+      setProgress(100);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setResultFile(result);
+        saveHistory(result);
+        trackToolUsage(tool.id, 'process_success');
+        toast.success(`✅ PDF created with ${total} page${total > 1 ? 's' : ''}!`);
+      }, 200);
+
+    } catch (error) {
+      console.error("Scan-to-PDF error:", error);
+      setIsProcessing(false);
+      trackError('ToolView:ScanToPdf', error.message);
+      toast.error(error.message || "Failed to process photos.");
     }
   };
 
@@ -851,7 +1017,7 @@ export default function ToolView({ tool, onBack }) {
                 )}
 
               {(tool.id === "scan-to-pdf" || tool.id === "ocr-pdf") && (
-                <div className="mt-8 flex justify-center">
+                <div className="mt-8 flex flex-col items-center gap-4">
                   <button
                     onClick={() => setShowCamera(true)}
                     className="flex items-center gap-3 px-7 py-3.5 rounded-full font-600 text-sm text-black bg-white shadow-lg transition-all hover:scale-105"
@@ -859,6 +1025,59 @@ export default function ToolView({ tool, onBack }) {
                     <Camera size={18} />
                     Open Camera to Scan
                   </button>
+                  {tool.id === "scan-to-pdf" && (
+                    <p className="text-[11px] text-zinc-500 font-500">
+                      Tap the shutter repeatedly — capture as many photos as you need (200+), then tap ✅ Use.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Scan-to-PDF: live photo grid ─── */}
+              {tool.id === "scan-to-pdf" && files.length > 0 && (
+                <div className="mt-6 max-w-3xl mx-auto">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-white uppercase tracking-widest">
+                        {files.length} Photo{files.length !== 1 ? 's' : ''} Ready
+                      </span>
+                      {files.length > 200 && (
+                        <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-full uppercase tracking-widest">
+                          Bulk Mode
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-zinc-500 font-500">
+                      Each photo → 1 PDF page
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-64 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                    {files.map((file, idx) => (
+                      <div key={idx} className="relative group aspect-square">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Photo ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-xl border border-white/10"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                          <button
+                            onClick={() => handleFileRemoved(idx)}
+                            className="w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg"
+                          >
+                            <X size={12} className="text-white" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-black px-1 py-0.5 rounded">
+                          {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {files.length >= 20 && (
+                    <p className="mt-3 text-center text-[11px] text-zinc-500">
+                      ⚡ Chunked processing active — {Math.ceil(files.length / 20)} batches of 20 will be processed in parallel.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1278,7 +1497,7 @@ export default function ToolView({ tool, onBack }) {
                 </div>
               )}
 
-              {tool.id !== "edit-pdf" && tool.id !== "chat-pdf" && (
+              {tool.id !== "edit-pdf" && tool.id !== "chat-pdf" && tool.id !== "scan-to-pdf" && (
                 <div className="mt-12 flex justify-center">
                   <button
                     onClick={processFiles}
@@ -1292,6 +1511,33 @@ export default function ToolView({ tool, onBack }) {
                     <Sparkles size={16} />
                     Process File{files.length > 1 ? "s" : ""}
                   </button>
+                </div>
+              )}
+
+              {/* ─── Scan-to-PDF dedicated convert button ─── */}
+              {tool.id === "scan-to-pdf" && (
+                <div className="mt-10 flex flex-col items-center gap-3">
+                  <button
+                    onClick={processScanToPdf}
+                    disabled={files.length === 0}
+                    className={`flex items-center gap-3 px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-2xl ${
+                      files.length > 0
+                        ? "bg-white text-black hover:bg-zinc-100 hover:scale-105 shadow-white/10"
+                        : "cursor-not-allowed text-zinc-600 bg-zinc-900/60 border border-white/5"
+                    }`}
+                  >
+                    <Sparkles size={18} />
+                    {files.length === 0
+                      ? "Add Photos to Begin"
+                      : `Convert ${files.length} Photo${files.length > 1 ? 's' : ''} to PDF`}
+                  </button>
+                  {files.length > 0 && (
+                    <p className="text-[11px] text-zinc-500">
+                      {files.length <= 20
+                        ? `${files.length} photos → single PDF`
+                        : `${files.length} photos → ${Math.ceil(files.length / 20)} parallel batches → merged PDF`}
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -1487,17 +1733,22 @@ export default function ToolView({ tool, onBack }) {
 
 
 
-      {isProcessing && <ProcessingOverlay status={processingStatus} progress={progress} />}
+      {isProcessing && <ProcessingOverlay status={processingStatus} progress={progress} detail={tool.id === "scan-to-pdf" && scanProgress.total > 0 ? (scanProgress.converted > 0 ? `Converting... ${scanProgress.converted} / ${scanProgress.total} photos` : `Uploading... ${scanProgress.uploaded} / ${scanProgress.total} photos`) : undefined} />}
 
       
       {showCamera && (
-        <CameraScanner 
-          onPhotosCaptured={(capturedFiles) => {
-            setFiles((prev) => [...prev, ...capturedFiles]);
-            setShowCamera(false);
-          }}
-          onCancel={() => setShowCamera(false)}
-        />
+        <React.Suspense fallback={null}>
+          <CameraScanner
+            onPhotosCaptured={(capturedFiles) => {
+              setFiles((prev) => [...prev, ...capturedFiles]);
+              setShowCamera(false);
+              if (capturedFiles.length > 0) {
+                toast.success(`${capturedFiles.length} photo${capturedFiles.length > 1 ? 's' : ''} added!`);
+              }
+            }}
+            onCancel={() => setShowCamera(false)}
+          />
+        </React.Suspense>
       )}
       <UpgradeModal 
         isOpen={showUpgradeModal} 

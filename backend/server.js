@@ -1201,149 +1201,205 @@ async function startServer() {
   });
 
   /* ══════════════════════════════════════════
+     BACKGROUND JOBS (FOR LONG TASKS)
+  ══════════════════════════════════════════ */
+  const jobs = new Map();
+
+  app.get("/api/job-status/:jobId", (req, res) => {
+    const job = jobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Job not found or expired." });
+    res.json(job);
+  });
+
+  /* ══════════════════════════════════════════
      PDF — TO WORD (.docx)
   ══════════════════════════════════════════ */
   app.post("/api/pdf/to-word", ...adobeProtect, async (req, res) => {
-    try {
-      const { fileId } = req.body;
-      const filePath = path.join(UPLOADS_DIR, fileId);
-      requireFile(filePath);
+    const { fileId } = req.body;
+    const jobId = uuidv4();
+    
+    // 1. Immediately return jobId to client
+    res.json({ jobId });
+    
+    // 2. Initialize job state
+    jobs.set(jobId, { status: "processing", progress: 10, message: "Initializing Adobe PDF to Word conversion..." });
+    
+    // 3. Start background processing
+    (async () => {
+      try {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
 
-      const buf = await readFileFast(filePath);
-      if (!isPDF(buf)) return res.status(400).json({ error: "Not a valid PDF." });
+        const buf = await readFileFast(filePath);
+        if (!isPDF(buf)) throw new Error("Not a valid PDF.");
 
-      logger.info(`Starting Adobe PDF to Word conversion for ${fileId}`);
+        logger.info(`Background Adobe PDF to Word for ${fileId} (Job: ${jobId})`);
+        jobs.set(jobId, { status: "processing", progress: 20, message: "Connecting to Adobe Cloud..." });
 
-      const clientId = process.env.ADOBE_CLIENT_ID;
-      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
+        const clientId = process.env.ADOBE_CLIENT_ID;
+        const clientSecret = process.env.ADOBE_CLIENT_SECRET;
 
-      if (!clientId || !clientSecret) {
-         throw new Error("Adobe PDF Services credentials are not configured on the server.");
+        if (!clientId || !clientSecret) {
+           throw new Error("Adobe PDF Services credentials are not configured.");
+        }
+
+        const credentials = new PDFServicesSdk.ServicePrincipalCredentials({ clientId, clientSecret });
+        const clientConfig = new PDFServicesSdk.ClientConfig({ timeout: 300000 });
+        const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
+
+        jobs.set(jobId, { status: "processing", progress: 30, message: "Uploading document securely to Adobe..." });
+        const inputAsset = await pdfServices.upload({
+          readStream: fs.createReadStream(filePath),
+          mimeType: PDFServicesSdk.MimeType.PDF
+        });
+
+        const params = new PDFServicesSdk.ExportPDFParams({
+          targetFormat: PDFServicesSdk.ExportPDFTargetFormat.DOCX
+        });
+        const job = new PDFServicesSdk.ExportPDFJob({ inputAsset, params });
+
+        jobs.set(jobId, { status: "processing", progress: 40, message: "Adobe is processing... (This takes about 15 seconds)" });
+        const pollingURL = await pdfServices.submit({ job });
+        
+        // Simulated progress tick while Adobe handles the internal polling
+        let tickProgress = 40;
+        const ticker = setInterval(() => {
+           tickProgress = Math.min(90, tickProgress + 2);
+           jobs.set(jobId, { status: "processing", progress: tickProgress, message: "Adobe is processing... (This takes about 15 seconds)" });
+        }, 1500);
+
+        let response;
+        try {
+           response = await pdfServices.getJobResult({
+             pollingURL,
+             resultType: PDFServicesSdk.ExportPDFResult
+           });
+        } finally {
+           clearInterval(ticker);
+        }
+
+        jobs.set(jobId, { status: "processing", progress: 95, message: "Downloading converted Word document..." });
+        const resultAsset = response.result.asset;
+        const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
+        const outName = `adobe-converted-${uuidv4()}.docx`;
+        const outPath = path.join(UPLOADS_DIR, outName);
+        
+        const writeStream = fs.createWriteStream(outPath);
+        streamAsset.readStream.pipe(writeStream);
+        
+        await new Promise((resolve, reject) => {
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+        });
+
+        // 4. Mark Complete
+        jobs.set(jobId, { status: "completed", progress: 100, result: { id: outName, name: "converted.docx" } });
+        logger.info(`Job ${jobId} completed successfully.`);
+        
+      } catch (err) {
+        logger.error(`Background Job ${jobId} failed: ` + err.message);
+        jobs.set(jobId, { status: "error", error: "Failed to convert PDF to Word. " + err.message });
+      } finally {
+        // 5. Cleanup job data after 15 minutes to prevent memory leaks
+        setTimeout(() => {
+          jobs.delete(jobId);
+        }, 15 * 60 * 1000);
       }
-
-      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
-        clientId,
-        clientSecret
-      });
-      const clientConfig = new PDFServicesSdk.ClientConfig({
-        timeout: 300000 // 5 minutes
-      });
-      const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
-
-      // 1. Upload Asset
-      const inputAsset = await pdfServices.upload({
-        readStream: fs.createReadStream(filePath),
-        mimeType: PDFServicesSdk.MimeType.PDF
-      });
-
-      // 2. Setup Export to DOCX
-      const params = new PDFServicesSdk.ExportPDFParams({
-        targetFormat: PDFServicesSdk.ExportPDFTargetFormat.DOCX
-      });
-      const job = new PDFServicesSdk.ExportPDFJob({ inputAsset, params });
-
-      // 3. Submit and Poll
-      const pollingURL = await pdfServices.submit({ job });
-      const response = await pdfServices.getJobResult({
-        pollingURL,
-        resultType: PDFServicesSdk.ExportPDFResult
-      });
-
-      // 4. Download Result
-      const resultAsset = response.result.asset;
-      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
-
-      const outName = `adobe-converted-${uuidv4()}.docx`;
-      const outPath = path.join(UPLOADS_DIR, outName);
-      
-      const writeStream = fs.createWriteStream(outPath);
-      streamAsset.readStream.pipe(writeStream);
-      
-      await new Promise((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-
-      res.json({ id: outName, name: "converted.docx" });
-    } catch (err) {
-      logger.error("to-word: " + err.message);
-      res.status(500).json({ error: "Failed to convert PDF to Word. " + err.message });
-    }
+    })();
   });
 
   /* ══════════════════════════════════════════
      PDF — WORD TO PDF
   ══════════════════════════════════════════ */
   app.post("/api/pdf/word-to-pdf", ...adobeProtect, async (req, res) => {
-    try {
-      const { fileId } = req.body;
-      const filePath = path.join(UPLOADS_DIR, fileId);
-      requireFile(filePath);
+    const { fileId } = req.body;
+    const jobId = uuidv4();
+    
+    res.json({ jobId });
+    jobs.set(jobId, { status: "processing", progress: 10, message: "Initializing Adobe Word to PDF conversion..." });
+    
+    (async () => {
+      try {
+        const filePath = path.join(UPLOADS_DIR, fileId);
+        requireFile(filePath);
 
-      logger.info(`Starting Adobe Word to PDF conversion for ${fileId}`);
+        logger.info(`Background Adobe Word to PDF for ${fileId} (Job: ${jobId})`);
+        jobs.set(jobId, { status: "processing", progress: 20, message: "Connecting to Adobe Cloud..." });
 
-      const clientId = process.env.ADOBE_CLIENT_ID;
-      const clientSecret = process.env.ADOBE_CLIENT_SECRET;
+        const clientId = process.env.ADOBE_CLIENT_ID;
+        const clientSecret = process.env.ADOBE_CLIENT_SECRET;
 
-      if (!clientId || !clientSecret) {
-         throw new Error("Adobe PDF Services credentials are not configured on the server.");
+        if (!clientId || !clientSecret) {
+           throw new Error("Adobe PDF Services credentials are not configured.");
+        }
+
+        const credentials = new PDFServicesSdk.ServicePrincipalCredentials({ clientId, clientSecret });
+        const clientConfig = new PDFServicesSdk.ClientConfig({ timeout: 300000 });
+        const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
+
+        const extension = path.extname(fileId).toLowerCase();
+        let mimeType = PDFServicesSdk.MimeType.DOCX;
+        if (extension === ".doc") {
+          mimeType = PDFServicesSdk.MimeType.DOC;
+        } else if (extension === ".rtf") {
+          mimeType = PDFServicesSdk.MimeType.RTF;
+        } else if (extension === ".txt") {
+          mimeType = PDFServicesSdk.MimeType.TXT;
+        }
+
+        jobs.set(jobId, { status: "processing", progress: 30, message: "Uploading document securely to Adobe..." });
+        const inputAsset = await pdfServices.upload({
+          readStream: fs.createReadStream(filePath),
+          mimeType
+        });
+
+        const job = new PDFServicesSdk.CreatePDFJob({ inputAsset });
+
+        jobs.set(jobId, { status: "processing", progress: 40, message: "Adobe is processing... (This takes about 15 seconds)" });
+        const pollingURL = await pdfServices.submit({ job });
+        
+        let tickProgress = 40;
+        const ticker = setInterval(() => {
+           tickProgress = Math.min(90, tickProgress + 2);
+           jobs.set(jobId, { status: "processing", progress: tickProgress, message: "Adobe is processing... (This takes about 15 seconds)" });
+        }, 1500);
+
+        let response;
+        try {
+           response = await pdfServices.getJobResult({
+             pollingURL,
+             resultType: PDFServicesSdk.CreatePDFResult
+           });
+        } finally {
+           clearInterval(ticker);
+        }
+
+        jobs.set(jobId, { status: "processing", progress: 95, message: "Downloading converted PDF document..." });
+        const resultAsset = response.result.asset;
+        const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
+        const outName = `converted-${uuidv4()}.pdf`;
+        const outPath = path.join(UPLOADS_DIR, outName);
+        
+        const writeStream = fs.createWriteStream(outPath);
+        streamAsset.readStream.pipe(writeStream);
+        
+        await new Promise((resolve, reject) => {
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+        });
+
+        jobs.set(jobId, { status: "completed", progress: 100, result: { id: outName, name: "converted.pdf" } });
+        logger.info(`Job ${jobId} completed successfully.`);
+        
+      } catch (err) {
+        logger.error(`Background Job ${jobId} failed: ` + err.message);
+        jobs.set(jobId, { status: "error", error: "Failed to convert Word to PDF. " + err.message });
+      } finally {
+        setTimeout(() => jobs.delete(jobId), 15 * 60 * 1000);
       }
-
-      const credentials = new PDFServicesSdk.ServicePrincipalCredentials({
-        clientId,
-        clientSecret
-      });
-      const clientConfig = new PDFServicesSdk.ClientConfig({
-        timeout: 300000 // 5 minutes
-      });
-      const pdfServices = new PDFServicesSdk.PDFServices({ credentials, clientConfig });
-
-      const extension = path.extname(fileId).toLowerCase();
-      let mimeType = PDFServicesSdk.MimeType.DOCX;
-      if (extension === ".doc") {
-        mimeType = PDFServicesSdk.MimeType.DOC;
-      } else if (extension === ".rtf") {
-        mimeType = PDFServicesSdk.MimeType.RTF;
-      } else if (extension === ".txt") {
-        mimeType = PDFServicesSdk.MimeType.TXT;
-      }
-
-      // 1. Upload Asset
-      const inputAsset = await pdfServices.upload({
-        readStream: fs.createReadStream(filePath),
-        mimeType
-      });
-
-      // 2. Setup Create PDF Job
-      const job = new PDFServicesSdk.CreatePDFJob({ inputAsset });
-
-      // 3. Submit and Poll
-      const pollingURL = await pdfServices.submit({ job });
-      const response = await pdfServices.getJobResult({
-        pollingURL,
-        resultType: PDFServicesSdk.CreatePDFResult
-      });
-
-      // 4. Download Result
-      const resultAsset = response.result.asset;
-      const streamAsset = await pdfServices.getContent({ asset: resultAsset });
-
-      const outName = `converted-${uuidv4()}.pdf`;
-      const outPath = path.join(UPLOADS_DIR, outName);
-      
-      const writeStream = fs.createWriteStream(outPath);
-      streamAsset.readStream.pipe(writeStream);
-      
-      await new Promise((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-
-      res.json({ id: outName, name: "converted.pdf" });
-    } catch (err) {
-      logger.error("word-to-pdf: " + err.message);
-      res.status(500).json({ error: "Failed to convert Word to PDF. " + err.message });
-    }
+    })();
   });
 
   /* ══════════════════════════════════════════
@@ -1547,6 +1603,83 @@ async function startServer() {
       res.json({ id: outName, name: "converted.pdf" });
     } catch (err) {
       logger.error("jpg-to-pdf: " + err.message);
+      res.status(err.status || 500).json({ error: err.message });
+    }
+  });
+
+  /* ══════════════════════════════════════════
+     PDF — JPG TO PDF (BATCH CHUNK)
+     Converts a single batch of image IDs to a partial PDF.
+     Used by the chunked 200+ photo scan pipeline.
+  ══════════════════════════════════════════ */
+  app.post("/api/pdf/jpg-to-pdf-chunk", async (req, res) => {
+    try {
+      const { fileIds, chunkIndex } = req.body;
+      if (!Array.isArray(fileIds) || !fileIds.length) return res.status(400).json({ error: "No files in chunk." });
+
+      const pdfDoc = await PDFDocument.create();
+
+      // Process up to 10 images concurrently within the chunk
+      const CONCURRENT = 10;
+      for (let i = 0; i < fileIds.length; i += CONCURRENT) {
+        const batch = fileIds.slice(i, i + CONCURRENT);
+        const embedResults = await Promise.all(batch.map(async (id) => {
+          const fp = path.join(UPLOADS_DIR, id);
+          requireFile(fp);
+          const jpegBuf = await sharp(fp)
+            .rotate()                               // auto-rotate from EXIF
+            .jpeg({ quality: 88, progressive: true })
+            .toBuffer();
+          return pdfDoc.embedJpg(jpegBuf);
+        }));
+        for (const img of embedResults) {
+          const maxW = 595.28, maxH = 841.89;      // A4 points
+          const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const page = pdfDoc.addPage([w, h]);
+          page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+        }
+      }
+
+      const bytes = await pdfDoc.save();
+      const outName = `chunk-${chunkIndex ?? 0}-${uuidv4()}.pdf`;
+      await writeFileFast(path.join(UPLOADS_DIR, outName), bytes);
+      res.json({ id: outName, chunkIndex: chunkIndex ?? 0 });
+    } catch (err) {
+      logger.error("jpg-to-pdf-chunk: " + err.message);
+      res.status(err.status || 500).json({ error: err.message });
+    }
+  });
+
+  /* ══════════════════════════════════════════
+     PDF — MERGE CHUNKS (for 200+ photo scan)
+     Merges ordered chunk PDF ids into one final PDF.
+  ══════════════════════════════════════════ */
+  app.post("/api/pdf/merge-chunks", async (req, res) => {
+    try {
+      const { chunkIds } = req.body;
+      if (!Array.isArray(chunkIds) || chunkIds.length === 0) {
+        return res.status(400).json({ error: "No chunk IDs provided." });
+      }
+
+      const merged = await PDFDocument.create();
+      for (const cid of chunkIds) {
+        const fp = path.join(UPLOADS_DIR, cid);
+        requireFile(fp);
+        const buf = await readFileFast(fp);
+        if (!isPDF(buf)) throw new Error(`Chunk ${cid} is not a valid PDF.`);
+        const src = await PDFDocument.load(buf);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach((pg) => merged.addPage(pg));
+      }
+
+      const bytes = await merged.save();
+      const finalName = `scan-${Date.now()}-${uuidv4()}.pdf`;
+      await writeFileFast(path.join(UPLOADS_DIR, finalName), bytes);
+      res.json({ id: finalName, name: "scanned-document.pdf", pageCount: merged.getPageCount() });
+    } catch (err) {
+      logger.error("merge-chunks: " + err.message);
       res.status(err.status || 500).json({ error: err.message });
     }
   });
