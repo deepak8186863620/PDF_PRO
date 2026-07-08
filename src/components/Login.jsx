@@ -40,6 +40,12 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
           setAnalyticsUser(u.uid, 'google.com');
           if (isNewUser) {
             trackSignUp(u.uid, 'Google');
+            // Send thank-you welcome email for redirect-based new sign-ups
+            fetch("/api/send-welcome-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: u.email, displayName: u.displayName }),
+            }).catch(() => {});
           } else {
             trackLogin(u.uid, 'Google');
           }
@@ -53,6 +59,19 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
     handleRedirectResult();
   }, [onLoginSuccess]);
 
+  // Sends the thank-you welcome email for brand-new registrations (fire-and-forget)
+  const sendWelcomeEmail = async (email, displayName) => {
+    try {
+      await fetch("/api/send-welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, displayName }),
+      });
+    } catch {
+      // Silently ignore — email failure must not block login
+    }
+  };
+
   const saveUserToFirestore = async (u, providerName) => {
     const userDocRef = doc(db, "users", u.uid);
     const userDoc    = await getDoc(userDocRef);
@@ -65,7 +84,12 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
     if (isNewUser) { userData.createdAt = Timestamp.now(); userData.role = "user"; }
     await setDoc(userDocRef, userData, { merge: true });
     setAnalyticsUser(u.uid, providerName);
-    if (isNewUser) trackSignUp(u.uid, providerName); else trackLogin(u.uid, providerName);
+    if (isNewUser) {
+      trackSignUp(u.uid, providerName);
+      sendWelcomeEmail(u.email, u.displayName); // fire-and-forget
+    } else {
+      trackLogin(u.uid, providerName);
+    }
     return isNewUser;
   };
 

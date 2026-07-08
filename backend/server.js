@@ -2457,6 +2457,66 @@ Your behaviour rules:
   });
 
   /* ══════════════════════════════════════════
+     WELCOME EMAIL — sent on new user sign-up
+  ══════════════════════════════════════════ */
+  app.post("/api/send-welcome-email", async (req, res) => {
+    try {
+      const { email, displayName } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "User email is required." });
+      }
+
+      const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+
+      if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+        logger.warn("SMTP configuration missing — welcome email not sent.");
+        return res.status(500).json({ error: "Email configuration missing on server." });
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT || 587,
+        secure: SMTP_PORT === "465",
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      });
+
+      const firstName = displayName ? displayName.split(" ")[0] : "there";
+
+      await transporter.sendMail({
+        from: `"Deepak Prajapati — PageDocX" <${SMTP_USER}>`,
+        to: email,
+        subject: "Thank you for using PageDocX!",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+            <p>Dear ${firstName},</p>
+
+            <p>Thank you for choosing <strong>PageDocX</strong>.</p>
+
+            <p>Your support means a great deal to us. Every user who trusts PageDocX motivates us to continue building a faster, smarter, and more reliable AI-powered document platform.</p>
+
+            <p>We truly appreciate you taking the time to use our application. Whether you've used it to chat with documents, summarize files, extract text, or manage your documents more efficiently, we're grateful to be a part of your workflow.</p>
+
+            <p>We're continuously working to improve PageDocX by introducing new features, enhancing performance, and providing a secure and seamless experience. Your feedback and suggestions are always welcome and play an important role in shaping the future of our platform.</p>
+
+            <p>Thank you once again for being part of our journey. We look forward to serving you with even better features in the future.</p>
+
+            <br/>
+            <p>Warm regards,</p>
+            <p><strong>Deepak Prajapati</strong><br/>Founder, PageDocX</p>
+          </div>
+        `,
+      });
+
+      logger.info(`Welcome email sent to new user: ${email}`);
+      res.json({ success: true, message: "Welcome email sent." });
+    } catch (err) {
+      logger.error("Failed to send welcome email: " + err.message);
+      res.status(500).json({ error: "Failed to send welcome email." });
+    }
+  });
+
+  /* ══════════════════════════════════════════
      RAZORPAY PAYMENT SYSTEM
   ══════════════════════════════════════════ */
   let Razorpay;
