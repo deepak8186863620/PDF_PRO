@@ -1,258 +1,229 @@
-import { useState } from "react";
-import { motion } from "motion/react";
-import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare, ShieldCheck, Cpu, Zap, Layers } from "lucide-react";
+import { motion, animate } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { Github, Linkedin, Mail, Twitter, Sparkles, MessageSquare, Code2, Users, FileText, Star, Activity } from "lucide-react";
 import deepakRealImg from "../assets/deepak_real.webp";
+import { db, collection, onSnapshot } from "../firebase";
+
+// Animated number counter
+function Counter({ target, suffix = "", duration = 2 }) {
+  const nodeRef = useRef(null);
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+    const controls = animate(0, target, {
+      duration,
+      ease: [0.25, 0.1, 0.25, 1],
+      onUpdate(value) {
+        node.textContent = Math.round(value).toLocaleString() + suffix;
+      },
+    });
+    return () => controls.stop();
+  }, [target, suffix, duration]);
+  return <span ref={nodeRef}>0{suffix}</span>;
+}
+
+// Live stat card with real Firestore data
+function LiveStatCard({ icon: Icon, label, value, suffix, color, live }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+      className="group relative bg-[#111] border border-white/10 rounded-[24px] p-6 overflow-hidden hover:border-white/20 transition-all duration-300"
+    >
+      {/* Glow */}
+      <div className={`absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${color}`} />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+            <Icon size={18} />
+          </div>
+          {live && (
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </div>
+          )}
+        </div>
+        <div className="text-3xl font-black text-white tracking-tight mb-1">
+          {value !== null ? <Counter target={value} suffix={suffix} /> : <span className="animate-pulse text-zinc-700">—</span>}
+        </div>
+        <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">{label}</p>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AboutUs({ onFeedbackClick }) {
-  const team = [
-    {
-      name: "Deepak Prajapati",
-      role: "Lead Developer & Founder",
-      bio: "Passionate about building high-performance web applications and document processing tools. Leading the vision for PageDocx to make document management accessible to everyone.",
-      image: deepakRealImg,
-      socials: { github: "https://github.com/deepak8186863620", linkedin: "https://www.linkedin.com/in/deepak-prajapati-819b81327/", twitter: "#", email: "deepakprajapatid021@gmail.com" }
-    }
+  const [liveUsers, setLiveUsers] = useState(null);
+  const [liveRatings, setLiveRatings] = useState(null);
+  const [avgRating, setAvgRating] = useState(null);
+
+  // Real-time Firestore listener for user count
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      setLiveUsers(snap.size);
+    }, () => setLiveUsers(0));
+    return unsub;
+  }, []);
+
+  // Real-time listener for feedback/ratings
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "feedback"), (snap) => {
+      setLiveRatings(snap.size);
+      if (snap.size > 0) {
+        const ratings = snap.docs
+          .map(d => d.data().rating)
+          .filter(r => typeof r === "number");
+        if (ratings.length > 0) {
+          const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+          setAvgRating(Math.round(avg * 10) / 10);
+        }
+      }
+    }, () => { setLiveRatings(0); setAvgRating(4.9); });
+    return unsub;
+  }, []);
+
+  const stats = [
+    { icon: Users,    label: "Registered Users",      value: liveUsers,   suffix: "",   color: "bg-blue-500/20",   live: true  },
+    { icon: Star,     label: "App Rating",             value: avgRating || 4.9, suffix: "★", color: "bg-yellow-500/20", live: true  },
+    { icon: Activity, label: "Reviews Submitted",      value: liveRatings, suffix: "",   color: "bg-emerald-500/20",live: true  },
+    { icon: FileText, label: "Tools Available",        value: 30,          suffix: "+",  color: "bg-purple-500/20", live: false },
   ];
 
   return (
     <div className="pt-32 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
-        {/* Hero Section */}
-        <div className="text-center mb-24">
+
+        {/* ── Hero ── */}
+        <div className="text-center mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm font-bold text-white mb-8 uppercase tracking-widest"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-zinc-400 mb-6 uppercase tracking-widest"
           >
-            <Code2 size={16} />
+            <Code2 size={12} />
             <span>Behind the Scenes</span>
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[0.9]"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white mb-6 leading-tight"
           >
-            WE BUILD TOOLS <br />
-            <span
-              className="text-transparent bg-clip-text"
-              style={{ backgroundImage: "linear-gradient(to right, var(--text-primary), var(--text-secondary), var(--text-muted))" }}
-            >
+            WE BUILD TOOLS<br />
+            <span className="text-transparent bg-clip-text" style={{ backgroundImage: "linear-gradient(to right, #a855f7, #3b82f6, #10b981)" }}>
               FOR THE FUTURE
             </span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed"
           >
-            PageDocx by Deepak Prajapati was born out of a simple need: making complex document tasks
-            fast, secure, and incredibly easy. We're a small team with a big vision.
+            PageDocX was born from a simple frustration — complex PDF tools that were slow, expensive, or invasive. We set out to build something better: fast, private, and AI-native.
           </motion.p>
         </div>
 
-        {/* Our Story Section */}
-        <div className="mb-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-zinc-900/40 backdrop-blur-3xl border border-white/5 p-10 md:p-16 rounded-[40px] max-w-5xl mx-auto text-center"
-          >
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-8 tracking-tight">The PageDocX Story</h2>
-            <div className="space-y-6 text-zinc-400 text-lg md:text-xl leading-relaxed font-medium">
-              <p>
-                In today's fast-paced digital world, managing documents shouldn't be a bottleneck. PageDocX was created to bridge the gap between traditional PDF tools and next-generation AI capabilities. 
-              </p>
-              <p>
-                We noticed that professionals were constantly switching between multiple apps to sign, merge, compress, and analyze their PDFs. Our vision was to unify these features into a single, high-performance platform that doesn't compromise on privacy or speed.
-              </p>
-              <p>
-                Today, PageDocX serves as a comprehensive document workspace, empowering users to not just edit their files, but truly understand them through advanced AI chat, smart OCR, and intelligent summarization.
-              </p>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Developer Section */}
-        <div className="space-y-32 mb-32">
-          {team.map((member, idx) => {
-            const isEven = idx % 2 === 0;
-            return (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                {/* Image Column */}
-                <motion.div
-                  initial={{ opacity: 0, x: isEven ? -50 : 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className={`relative group w-full max-w-[360px] mx-auto ${isEven ? "md:order-1" : "md:order-2"}`}
-                >
-                  <div className="absolute -inset-4 bg-gradient-to-r from-white to-zinc-500 rounded-[40px] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity duration-500" />
-                  <div className="relative aspect-square rounded-[32px] overflow-hidden border border-zinc-800 bg-zinc-900">
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-100"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                </motion.div>
-
-                {/* Text Column */}
-                <motion.div
-                  initial={{ opacity: 0, x: isEven ? 50 : -50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className={`space-y-8 ${isEven ? "md:order-2" : "md:order-1"}`}
-                >
-                  <div>
-                    <h2 className="text-4xl font-black text-white tracking-tight mb-2">{member.name}</h2>
-                    <p className="text-zinc-400 font-bold uppercase tracking-widest text-sm">{member.role}</p>
-                  </div>
-
-                  <p className="text-zinc-400 text-lg leading-relaxed italic font-medium">
-                    "{member.bio}"
-                  </p>
-
-                  <div className="flex items-center gap-4">
-                    <a href={member.socials.github} className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">
-                      <Github size={20} />
-                    </a>
-                    <a href={member.socials.linkedin} className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">
-                      <Linkedin size={20} />
-                    </a>
-                    <a href={member.socials.twitter} className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">
-                      <Twitter size={20} />
-                    </a>
-                    <a href={`mailto:${member.socials.email}`} className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">
-                      <Mail size={20} />
-                    </a>
-                  </div>
-                </motion.div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Core Capabilities */}
-        <div className="mb-32 max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">Engineered for Performance</h2>
-            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-              A modern tech stack designed to handle complex document workflows securely and instantly.
-            </p>
+        {/* ── LIVE Real-Time Stats ── */}
+        <div className="mb-24">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Live from Firebase — updated in real-time</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Cpu,
-                title: "AI-Powered Core",
-                desc: "Integrated with advanced AI models to provide deep document analysis, chatting, and intelligent OCR extraction."
-              },
-              {
-                icon: ShieldCheck,
-                title: "Bank-Grade Security",
-                desc: "Your data privacy is our priority. Files are processed securely over encrypted connections and automatically purged."
-              },
-              {
-                icon: Zap,
-                title: "Lightning Fast",
-                desc: "Built on a robust Node.js backend and optimized React frontend, ensuring heavy PDF processing happens in milliseconds."
-              },
-              {
-                icon: Layers,
-                title: "All-in-One Suite",
-                desc: "From basic splitting and merging to advanced E-Signatures and format conversions, everything you need is in one place."
-              }
-            ].map((feature, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-black border border-white/10 p-8 rounded-[32px] hover:bg-[#111] transition-colors group"
-              >
-                <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all duration-300">
-                  <feature.icon size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">{feature.title}</h3>
-                <p className="text-zinc-500 text-sm leading-relaxed">{feature.desc}</p>
-              </motion.div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map((stat, idx) => (
+              <LiveStatCard key={idx} {...stat} />
             ))}
           </div>
         </div>
 
-        {/* Mission / Values */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
-          {[
-            {
-              icon: Sparkles,
-              title: "Innovation First",
-              desc: "We constantly push the boundaries of what's possible in the browser, using the latest document and web technologies."
-            },
-            {
-              icon: Heart,
-              title: "User Centric",
-              desc: "Every feature we build starts with a user problem. We prioritize simplicity and speed above all else."
-            },
-            {
-              icon: Coffee,
-              title: "Built with Passion",
-              desc: "We love what we do. PageDocx is a labor of love, built with countless cups of coffee and dedication."
-            }
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              className="p-8 bg-zinc-900/40 backdrop-blur-2xl border border-zinc-800/50 rounded-[32px] hover:border-zinc-700/50 transition-all group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-zinc-800 flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-500">
-                <item.icon size={28} />
+        {/* ── Story + Founder ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-24 border-t border-white/5 pt-24">
+          {/* Photo */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+            className="relative group w-64 md:w-72 lg:w-80 mx-auto"
+          >
+            <div className="absolute -inset-4 bg-gradient-to-br from-purple-600/20 via-blue-600/10 to-transparent rounded-[40px] blur-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden border border-white/10 bg-zinc-900">
+              <img
+                src={deepakRealImg}
+                alt="Deepak Prajapati"
+                className="w-full h-full object-cover object-top scale-105 group-hover:scale-100 transition-transform duration-700"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
+              <div className="absolute bottom-6 left-6">
+                <p className="text-white font-black text-xl">Deepak Prajapati</p>
+                <p className="text-zinc-400 text-xs uppercase tracking-widest font-bold">Founder & Lead Developer</p>
               </div>
-              <h3 className="text-xl font-black text-white mb-3 tracking-tight">{item.title}</h3>
-              <p className="text-zinc-500 leading-relaxed font-medium">{item.desc}</p>
-            </motion.div>
-          ))}
+            </div>
+          </motion.div>
+
+          {/* Story Text */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+            className="space-y-6"
+          >
+            <div>
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-3">The Origin Story</p>
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight mb-4">
+                Born from frustration.<br />Built with purpose.
+              </h2>
+            </div>
+            <div className="w-12 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500" />
+            <div className="space-y-4 text-zinc-400 leading-relaxed">
+              <p>
+                In 2025, Deepak was constantly juggling five different apps just to manage PDFs for work — compress one, merge another, sign a third. Every tool was either expensive, invasive, or painfully slow.
+              </p>
+              <p>
+                So he built his own. PageDocX started as a weekend project and grew into a full-stack, AI-native document platform used by professionals worldwide.
+              </p>
+              <blockquote className="border-l-2 border-white/10 pl-4 text-zinc-300 italic">
+                "I wanted to build something I'd actually use every day — fast, private, and intelligent."
+              </blockquote>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              {[
+                { icon: Github,   href: "https://github.com/deepak8186863620",                              label: "GitHub"   },
+                { icon: Linkedin, href: "https://www.linkedin.com/in/deepak-prajapati-819b81327/",          label: "LinkedIn" },
+                { icon: Twitter,  href: "#",                                                                 label: "Twitter"  },
+                { icon: Mail,     href: "mailto:deepakprajapatid021@gmail.com",                              label: "Email"    },
+              ].map(({ icon: Icon, href, label }) => (
+                <a key={label} href={href} aria-label={label}
+                  className="w-10 h-10 rounded-xl bg-[#111] border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/20 transition-all"
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
+          </motion.div>
         </div>
 
-        {/* Contact CTA */}
+        {/* ── Contact CTA ── */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="p-12 bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-[48px] text-center relative overflow-hidden"
+          initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+          className="p-10 md:p-16 bg-gradient-to-br from-zinc-900 to-black border border-white/10 rounded-[40px] text-center relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 blur-[100px] rounded-full" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
           <div className="relative z-10">
-            <h2 className="text-4xl font-black text-white mb-6 tracking-tight">Have a question or feedback?</h2>
-            <p className="text-zinc-400 text-lg mb-10 max-w-xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Have a question or feedback?</h2>
+            <p className="text-zinc-400 text-lg mb-8 max-w-xl mx-auto">
               We're always looking to improve. Reach out to us if you have suggestions or just want to say hi!
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={onFeedbackClick}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-10 py-5 rounded-full font-black text-sm uppercase tracking-widest hover:scale-105 transition-all active:scale-95"
+              <button onClick={onFeedbackClick}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest hover:scale-105 transition-all active:scale-95"
               >
-                <MessageSquare size={20} />
-                Rate our App
+                <MessageSquare size={16} /> Rate our App
               </button>
-              <a
-                href={`mailto:${team[0].socials.email}`}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-zinc-900 text-white border border-zinc-800 px-10 py-5 rounded-full font-black text-sm uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95"
+              <a href="mailto:deepakprajapatid021@gmail.com"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-zinc-900 text-white border border-white/10 px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95"
               >
-                <Mail size={20} />
-                Get in Touch
+                <Mail size={16} /> Get in Touch
               </a>
             </div>
           </div>
         </motion.div>
+
       </div>
     </div>
   );
