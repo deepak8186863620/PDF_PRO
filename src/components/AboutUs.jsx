@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare } from "lucide-react";
-import deepakImg from "../assets/deepak.webp";
 import deepakRealImg from "../assets/deepak_real.webp";
 
 export default function AboutUs({ onFeedbackClick }) {
@@ -12,15 +11,7 @@ export default function AboutUs({ onFeedbackClick }) {
       bio: "Passionate about building high-performance web applications and document processing tools. Leading the vision for PageDocx to make document management accessible to everyone.",
       image: deepakRealImg,
       socials: { github: "https://github.com/deepak8186863620", linkedin: "https://www.linkedin.com/in/deepak-prajapati-819b81327/", twitter: "#", email: "deepakprajapatid021@gmail.com" }
-    },
-    {
-      name: "Nishath",
-      role: "Lead UI/UX Designer",
-      bio: "Obsessed with creating beautiful, intuitive interfaces. Making sure every click in PageDocx feels natural and looks stunning.",
-      image: deepakImg, // Replace with Sarah's image
-      socials: { github: "#", linkedin: "#", twitter: "#", email: "#" }
     }
-
   ];
 
   return (
