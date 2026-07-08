@@ -1,6 +1,6 @@
 import { motion, animate } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Github, Linkedin, Mail, Twitter, Sparkles, MessageSquare, Code2, Users, FileText, Star, Activity } from "lucide-react";
+import { Github, Linkedin, Mail, Twitter, Sparkles, MessageSquare, Code2, Users, FileText, Star, Activity, ArrowRight, ShieldCheck, Cpu } from "lucide-react";
 import deepakRealImg from "../assets/deepak_real.webp";
 import { db, collection, onSnapshot } from "../firebase";
 
@@ -195,6 +195,73 @@ export default function AboutUs({ onFeedbackClick }) {
               ))}
             </div>
           </motion.div>
+        </div>
+
+        {/* ── Latest Insights (Mini Blog Section) ── */}
+        <div className="mb-24 border-t border-white/5 pt-24">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-3">Knowledge Base</p>
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">Latest from the blog</h2>
+            </div>
+            <a href="/blog" className="inline-flex items-center gap-2 text-sm font-bold text-white hover:text-purple-400 transition-colors uppercase tracking-widest">
+              View all articles <ArrowRight size={16} />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { title: "How AI is changing document workflows", desc: "Discover how Gemini 2.5 Flash helps extract tables, summarize texts, and OCR scanned pages instantly.", date: "May 24, 2026", read: "5 min read", color: "from-purple-500 to-pink-500", icon: Sparkles },
+              { title: "Secure PDF Signing: A Guide", desc: "Keep your files confidential. Read our best practices for processing financial, legal, and medical documents.", date: "May 20, 2026", read: "3 min read", color: "from-blue-500 to-indigo-500", icon: ShieldCheck },
+              { title: "The Future of Local-First Web Apps", desc: "Why we believe the browser is the ultimate operating system, and how we built a secure platform around it.", date: "May 15, 2026", read: "4 min read", color: "from-emerald-400 to-emerald-600", icon: Cpu }
+            ].map((blog, i) => (
+              <a href="/blog" key={i} className="group block bg-[#111] border border-white/10 rounded-[24px] p-6 hover:border-white/20 transition-all duration-300">
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${blog.color} flex items-center justify-center text-white mb-6 shadow-lg`}>
+                  <blog.icon size={20} />
+                </div>
+                <div className="flex items-center gap-3 text-xs text-zinc-500 font-bold uppercase tracking-widest mb-3">
+                  <span>{blog.date}</span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                  <span>{blog.read}</span>
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 group-hover:text-purple-400 transition-colors leading-tight">{blog.title}</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">{blog.desc}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Timeline / Roadmap ── */}
+        <div className="mb-24 border-t border-white/5 pt-24">
+          <div className="text-center mb-16">
+            <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-3">The Journey</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">How we got here</h2>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            {[
+              { year: "2024", title: "The First Prototype", desc: "Built a simple script to merge PDFs locally because existing tools were too slow." },
+              { year: "2025", title: "PageDocX is Born", desc: "Launched the first version of the platform with 10 core tools and zero ads." },
+              { year: "2026", title: "AI Integration", desc: "Partnered with Gemini to bring intelligent OCR, summarization, and chat directly into the browser." },
+              { year: "Future", title: "Collaborative Workspaces", desc: "Building real-time multiplayer document editing for teams and enterprises." },
+            ].map((item, i) => (
+              <div key={i} className="flex gap-8 group">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full bg-[#111] border-2 border-white/10 flex items-center justify-center text-white font-black group-hover:border-purple-500 transition-colors z-10 shrink-0 shadow-xl">
+                    {item.year === "Future" ? <Sparkles size={20} className="text-purple-400" /> : item.year.slice(2)}
+                  </div>
+                  {i !== 3 && <div className="w-0.5 h-full bg-gradient-to-b from-white/10 to-transparent my-2" />}
+                </div>
+                <div className="pb-16 pt-3">
+                  <div className="flex items-center gap-4 mb-2">
+                    <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{item.year}</span>
+                    <h3 className="text-2xl font-black text-white">{item.title}</h3>
+                  </div>
+                  <p className="text-zinc-400 text-lg leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── Contact CTA ── */}
