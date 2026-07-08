@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare } from "lucide-react";
+import { Github, Linkedin, Mail, Twitter, Code2, Heart, Coffee, Sparkles, MessageSquare, ShieldCheck, Cpu, Zap, Layers } from "lucide-react";
 import deepakRealImg from "../assets/deepak_real.webp";
 
 export default function AboutUs({ onFeedbackClick }) {
@@ -52,6 +52,29 @@ export default function AboutUs({ onFeedbackClick }) {
             PageDocx by Deepak Prajapati was born out of a simple need: making complex document tasks
             fast, secure, and incredibly easy. We're a small team with a big vision.
           </motion.p>
+        </div>
+
+        {/* Our Story Section */}
+        <div className="mb-32">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-zinc-900/40 backdrop-blur-3xl border border-white/5 p-10 md:p-16 rounded-[40px] max-w-5xl mx-auto text-center"
+          >
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-8 tracking-tight">The PageDocX Story</h2>
+            <div className="space-y-6 text-zinc-400 text-lg md:text-xl leading-relaxed font-medium">
+              <p>
+                In today's fast-paced digital world, managing documents shouldn't be a bottleneck. PageDocX was created to bridge the gap between traditional PDF tools and next-generation AI capabilities. 
+              </p>
+              <p>
+                We noticed that professionals were constantly switching between multiple apps to sign, merge, compress, and analyze their PDFs. Our vision was to unify these features into a single, high-performance platform that doesn't compromise on privacy or speed.
+              </p>
+              <p>
+                Today, PageDocX serves as a comprehensive document workspace, empowering users to not just edit their files, but truly understand them through advanced AI chat, smart OCR, and intelligent summarization.
+              </p>
+            </div>
+          </motion.div>
         </div>
 
         {/* Developer Section */}
@@ -112,6 +135,55 @@ export default function AboutUs({ onFeedbackClick }) {
               </div>
             );
           })}
+        </div>
+
+        {/* Core Capabilities */}
+        <div className="mb-32 max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">Engineered for Performance</h2>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+              A modern tech stack designed to handle complex document workflows securely and instantly.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: Cpu,
+                title: "AI-Powered Core",
+                desc: "Integrated with advanced AI models to provide deep document analysis, chatting, and intelligent OCR extraction."
+              },
+              {
+                icon: ShieldCheck,
+                title: "Bank-Grade Security",
+                desc: "Your data privacy is our priority. Files are processed securely over encrypted connections and automatically purged."
+              },
+              {
+                icon: Zap,
+                title: "Lightning Fast",
+                desc: "Built on a robust Node.js backend and optimized React frontend, ensuring heavy PDF processing happens in milliseconds."
+              },
+              {
+                icon: Layers,
+                title: "All-in-One Suite",
+                desc: "From basic splitting and merging to advanced E-Signatures and format conversions, everything you need is in one place."
+              }
+            ].map((feature, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-black border border-white/10 p-8 rounded-[32px] hover:bg-[#111] transition-colors group"
+              >
+                <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all duration-300">
+                  <feature.icon size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">{feature.title}</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
         {/* Mission / Values */}
