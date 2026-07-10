@@ -202,15 +202,14 @@ export default function Footer({ onAboutClick, onToolClick, onContactClick, onTe
           style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
         >
           <p className="text-xs text-zinc-500">
-            © {new Date().getFullYear()} PageDocx by Deepak Prajapati. All rights reserved.
+            © {new Date().getFullYear()} PageDocx. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a href="https://pdf-pro-dx2i.onrender.com/" target="_blank" className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-zinc-300 transition-colors">
               <Sparkles size={12} className="text-purple-400" /> Made with PageDocx
             </a>
             <p className="text-xs text-zinc-500 flex items-center gap-1.5">
-              Made with <Heart size={11} className="text-red-500 fill-red-500" /> by{" "}
-              <span className="text-zinc-300 font-600">Deepak Prajapati & Team</span>
+              Made with <Heart size={11} className="text-red-500 fill-red-500" />
             </p>
           </div>
         </div>

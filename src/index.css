@@ -677,6 +677,47 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border-color: rgba(15, 23, 42, 0.15) !important;
     color: var(--text-primary) !important;
   }
+  /* FeedbackPage bottom sections — light mode polish */
+  .bg-zinc-900\\/30 {
+    background-color: rgba(15, 23, 42, 0.04) !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .bg-zinc-900\\/20 {
+    background-color: rgba(15, 23, 42, 0.03) !important;
+  }
+  .bg-black\\/50 {
+    background-color: rgba(15, 23, 42, 0.04) !important;
+  }
+  .bg-zinc-800\\/40 {
+    background-color: rgba(15, 23, 42, 0.06) !important;
+  }
+  .border-zinc-800\\/60 {
+    border-color: rgba(15, 23, 42, 0.1) !important;
+  }
+  .border-zinc-800\\/40 {
+    border-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .hover\\:border-zinc-700\\/60:hover {
+    border-color: rgba(15, 23, 42, 0.18) !important;
+  }
+  .bg-zinc-900\\/80 {
+    background-color: rgba(15, 23, 42, 0.06) !important;
+  }
+  .hover\\:bg-zinc-900\\/80:hover {
+    background-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .text-zinc-600 {
+    color: var(--text-muted) !important;
+  }
+  .bg-zinc-800 {
+    background-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .hover\\:bg-zinc-800:hover {
+    background-color: rgba(15, 23, 42, 0.10) !important;
+  }
+  .bg-gradient-to-br.from-zinc-900.via-black.to-zinc-900 {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-primary) 50%, var(--bg-card) 100%) !important;
+  }
 }
 
 /* ── Navbar Scrolled Adaptive Styles ── */

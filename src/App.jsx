@@ -399,7 +399,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                <FeedbackPage />
+                <FeedbackPage theme={theme} />
               </motion.div>
             ) : view === "terms" ? (
               <motion.div
