@@ -12,10 +12,34 @@ if (typeof window !== "undefined") {
 // ─── Mini single-page preview canvas ─────────────────────────────────────────
 function PageCanvas({ pdfDoc, pageNum, scale = 1.0, className = "", onClick, selected, showNum = true }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const taskRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(el);
+          }
+        });
+      },
+      { rootMargin: "250px" } // Render slightly before coming into view
+    );
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current || !isVisible) return;
 
     let cancelled = false;
     const render = async () => {
@@ -43,10 +67,11 @@ function PageCanvas({ pdfDoc, pageNum, scale = 1.0, className = "", onClick, sel
       cancelled = true;
       if (taskRef.current) taskRef.current.cancel();
     };
-  }, [pdfDoc, pageNum, scale]);
+  }, [pdfDoc, pageNum, scale, isVisible]);
 
   return (
     <motion.div
+      ref={containerRef}
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
@@ -56,7 +81,13 @@ function PageCanvas({ pdfDoc, pageNum, scale = 1.0, className = "", onClick, sel
           : "hover:ring-2 hover:ring-zinc-600 hover:ring-offset-2 hover:ring-offset-black"
       } ${className}`}
     >
-      <canvas ref={canvasRef} className="w-full h-auto block" />
+      {isVisible ? (
+        <canvas ref={canvasRef} className="w-full h-auto block" />
+      ) : (
+        <div className="w-full h-full min-h-[180px] flex items-center justify-center bg-zinc-950/60 rounded-2xl animate-pulse">
+          <span className="text-zinc-600 text-[10px] font-bold tracking-widest">LOADING...</span>
+        </div>
+      )}
 
       {/* Selection overlay */}
       <div className={`absolute inset-0 transition-all duration-200 ${selected ? "bg-red-500/10" : "bg-black/0 group-hover:bg-white/5"}`} />

@@ -89,6 +89,15 @@ export const TOOLS = [
     colorStyle: { background: "linear-gradient(to bottom right, #6366f1, #1d4ed8)" },
   },
   {
+    id: "png-to-pdf",
+    name: "PNG to PDF",
+    description: "Convert PNG images to high-quality PDF with lossless quality. Supports multiple PNGs into one PDF.",
+    icon: FileImage,
+    category: "pdf",
+    color: "bg-gradient-to-br from-sky-500 to-cyan-700",
+    colorStyle: { background: "linear-gradient(to bottom right, #0ea5e9, #0e7490)" },
+  },
+  {
     id: "pdf-to-word",
     name: "PDF to Word",
     description: "Convert your PDF documents to editable Word files.",

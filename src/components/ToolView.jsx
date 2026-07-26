@@ -317,7 +317,7 @@ export default function ToolView({ tool, onBack }) {
       setProgress(60);
       
       // For long-running API tasks, simulate progress to improve UX
-      if (["pdf-to-word", "word-to-pdf", "excel-to-pdf", "pptx-to-pdf", "ocr-pdf", "summarize-pdf", "pdf-to-jpg"].includes(tool.id)) {
+      if (["pdf-to-word", "word-to-pdf", "excel-to-pdf", "pptx-to-pdf", "ocr-pdf", "summarize-pdf", "pdf-to-jpg", "png-to-pdf"].includes(tool.id)) {
         let currentProgress = 60;
         progressInterval = setInterval(() => {
           currentProgress += Math.floor(Math.random() * 3) + 1;
@@ -363,6 +363,12 @@ export default function ToolView({ tool, onBack }) {
         });
       } else if (tool.id === "jpg-to-pdf") {
         processRes = await fetch("/api/pdf/jpg-to-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileIds: uploadedFiles.map((f) => f.id) }),
+        });
+      } else if (tool.id === "png-to-pdf") {
+        processRes = await fetch("/api/pdf/png-to-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileIds: uploadedFiles.map((f) => f.id) }),
@@ -993,11 +999,15 @@ export default function ToolView({ tool, onBack }) {
                         ? { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"], "application/vnd.ms-excel": [".xls"] }
                         : tool.id === "pptx-to-pdf"
                           ? { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] }
-                          : tool.category === "pdf" || tool.id === "summarize-pdf" || tool.id === "ocr-pdf" || tool.id === "chat-pdf"
-                            ? { "application/pdf": [".pdf"], "image/*": [".jpg", ".jpeg", ".png", ".webp"] } 
-                            : { "image/*": [".jpg", ".jpeg", ".png", ".webp"] }
+                          : tool.id === "jpg-to-pdf"
+                            ? { "image/*": [".jpg", ".jpeg", ".webp"] }
+                            : tool.id === "png-to-pdf"
+                              ? { "image/png": [".png"] }
+                              : tool.category === "pdf" || tool.id === "summarize-pdf" || tool.id === "ocr-pdf" || tool.id === "chat-pdf"
+                                ? { "application/pdf": [".pdf"], "image/*": [".jpg", ".jpeg", ".png", ".webp"] } 
+                                : { "image/*": [".jpg", ".jpeg", ".png", ".webp"] }
                   }
-                  multiple={tool.id === "merge-pdf" || tool.id === "add-pages" || tool.id === "jpg-to-pdf" || tool.id === "scan-to-pdf"}
+                  multiple={tool.id === "merge-pdf" || tool.id === "add-pages" || tool.id === "jpg-to-pdf" || tool.id === "png-to-pdf" || tool.id === "scan-to-pdf"}
                 />
               </div>
 

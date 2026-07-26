@@ -1584,7 +1584,11 @@ async function startServer() {
       const embedResults = await Promise.all(fileIds.map(async (id) => {
         const fp = path.join(UPLOADS_DIR, id);
         requireFile(fp);
-        const jpegBuf = await sharp(fp).jpeg({ quality: 90 }).toBuffer();
+        const jpegBuf = await sharp(fp)
+          .rotate()
+          .resize({ width: 1200, height: 1600, fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality: 90 })
+          .toBuffer();
         return pdfDoc.embedJpg(jpegBuf);
       }));
 
@@ -1603,6 +1607,54 @@ async function startServer() {
       res.json({ id: outName, name: "converted.pdf" });
     } catch (err) {
       logger.error("jpg-to-pdf: " + err.message);
+      res.status(err.status || 500).json({ error: err.message });
+    }
+  });
+
+  /* ══════════════════════════════════════════
+     PDF — PNG TO PDF
+     Embeds PNG images losslessly into a PDF using pdf-lib's embedPng.
+     Supports multiple PNG files → one combined PDF.
+  ══════════════════════════════════════════ */
+  app.post("/api/pdf/png-to-pdf", async (req, res) => {
+    try {
+      const { fileIds } = req.body;
+      if (!Array.isArray(fileIds) || !fileIds.length)
+        return res.status(400).json({ error: "No files provided." });
+
+      const pdfDoc = await PDFDocument.create();
+
+      // Process all PNG images in parallel
+      const embedResults = await Promise.all(
+        fileIds.map(async (id) => {
+          const fp = path.join(UPLOADS_DIR, id);
+          requireFile(fp);
+          // Normalize to PNG (handles transparency, EXIF rotation, other img formats)
+          const pngBuf = await sharp(fp)
+            .rotate()                       // auto-rotate from EXIF metadata
+            .resize({ width: 1200, height: 1600, fit: "inside", withoutEnlargement: true })
+            .png({ compressionLevel: 6 })   // lossless PNG
+            .toBuffer();
+          return pdfDoc.embedPng(pngBuf);
+        })
+      );
+
+      for (const img of embedResults) {
+        // Fit inside A4 (595 × 842 pts) while preserving aspect ratio
+        const maxW = 595.28, maxH = 841.89;
+        const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const page = pdfDoc.addPage([w, h]);
+        page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+      }
+
+      const bytes = await pdfDoc.save();
+      const outName = `png-converted-${uuidv4()}.pdf`;
+      await writeFileFast(path.join(UPLOADS_DIR, outName), bytes);
+      res.json({ id: outName, name: "converted.pdf" });
+    } catch (err) {
+      logger.error("png-to-pdf: " + err.message);
       res.status(err.status || 500).json({ error: err.message });
     }
   });
@@ -1628,6 +1680,7 @@ async function startServer() {
           requireFile(fp);
           const jpegBuf = await sharp(fp)
             .rotate()                               // auto-rotate from EXIF
+            .resize({ width: 1200, height: 1600, fit: "inside", withoutEnlargement: true })
             .jpeg({ quality: 88, progressive: true })
             .toBuffer();
           return pdfDoc.embedJpg(jpegBuf);

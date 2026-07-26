@@ -60,17 +60,51 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
     };
   }, [file]);
 
+  const [visiblePages, setVisiblePages] = useState(new Set());
+
+  useEffect(() => {
+    if (loading || !containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisiblePages((prev) => {
+          const next = new Set(prev);
+          entries.forEach((entry) => {
+            const pageNum = parseInt(entry.target.getAttribute("data-page"));
+            if (entry.isIntersecting && !isNaN(pageNum)) {
+              next.add(pageNum);
+            }
+          });
+          return next;
+        });
+      },
+      { rootMargin: "300px" } // trigger load slightly before scrolling in
+    );
+
+    // Give it a brief moment to render placeholders before observing
+    const timer = setTimeout(() => {
+      const pageWrappers = containerRef.current?.querySelectorAll("[data-page]");
+      pageWrappers?.forEach((el) => observer.observe(el));
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [loading, numPages, deletedPages]);
+
   useEffect(() => {
     if (!loading && pdfRef.current) {
       renderAllPages();
     }
-  }, [loading, scale, pageRotations, deletedPages]);
+  }, [loading, scale, pageRotations, deletedPages, visiblePages]);
 
   const renderAllPages = async () => {
     if (!pdfRef.current) return;
 
     for (let i = 1; i <= numPages; i++) {
       if (deletedPages.includes(i)) continue;
+      if (!visiblePages.has(i)) continue; // skip if not scrolled to/visible
       renderPage(i, scale);
     }
   };
@@ -507,92 +541,105 @@ export default function PDFVisualEditor({ file, onClose, onSave }) {
               {Array.from({ length: numPages }).map((_, i) => {
                 const pageNum = i + 1;
                 if (deletedPages.includes(pageNum)) return null;
+                const isPageVisible = visiblePages.has(pageNum);
                 
                 return (
-                  <div key={pageNum} className="relative group">
-
-                    {/* Page Actions Overlay */}
-                    <div className="absolute top-2 right-2 md:-left-12 md:right-auto md:top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
-                      <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
-                        {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin w-4 h-4" /> : <ScanText size={16} className="w-4 h-4 md:w-4 md:h-4" />}
-                      </button>
-                      <button onClick={() => rotatePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
-                        <RotateCw size={16} className="w-4 h-4 md:w-4 md:h-4" />
-                      </button>
-                      <button onClick={() => deletePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-red-500 rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
-                        <Trash2 size={16} className="w-4 h-4 md:w-4 md:h-4" />
-                      </button>
-                    </div>
-
-                    <div className="relative shadow-2xl bg-white">
-                      <canvas 
-                        ref={(el) => { canvasRefs.current[pageNum] = el; }} 
-                        className={`max-w-full h-auto ${activeTool === "text" ? "cursor-text" : "cursor-default"}`}
-                        onClick={(e) => handleCanvasClick(pageNum, e)}
-                      />
-                      
-                      {/* Interaction Layer */}
-                      <div className="absolute inset-0 select-none">
-                        {/* Text Items Layer */}
-                        <div className="absolute inset-0 overflow-hidden">
-                          {pageTextItems[pageNum]?.map((item) => {
-                            const edit = edits.find(e => e.page === pageNum && e.type === "replaceText" && e.x === item.pdfX && e.y === item.pdfY);
-                            return (
-                              <div
-                                key={item.id}
-                                style={{
-                                  position: "absolute",
-                                  left: `${item.x}px`,
-                                  top: `${item.y}px`,
-                                  width: `${item.width}px`,
-                                  height: `${item.height || item.fontSize}px`,
-                                  fontSize: `${item.fontSize}px`,
-                                  pointerEvents: "auto",
-                                }}
-                                className={`group/item border border-transparent hover:border-red-500/30 hover:bg-red-500/5 transition-all cursor-text ${edit ? "opacity-100" : "opacity-0 hover:opacity-100"}`}
-                                onClick={(e) => handleTextItemClick(pageNum, item, e)}
-                              >
-                                {edit ? (
-                                  <div className="absolute inset-0 bg-white text-black font-medium leading-none flex items-center whitespace-nowrap overflow-visible z-10">
-                                    {edit.newText}
-                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                                  </div>
-                                ) : (
-                                  <div className="absolute inset-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-black/5 text-transparent pointer-events-none">
-                                    {item.text}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                  <div 
+                    key={pageNum} 
+                    data-page={pageNum}
+                    className="relative group w-[595px] max-w-full aspect-[1/1.41] flex flex-col justify-between"
+                  >
+                    {!isPageVisible ? (
+                      <div className="flex-1 flex flex-col items-center justify-center bg-zinc-950/40 border border-white/5 rounded-3xl animate-pulse">
+                        <Loader2 className="animate-spin text-zinc-700 mb-3" size={24} />
+                        <span className="text-zinc-600 text-[10px] font-bold tracking-widest uppercase">Page {pageNum}</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Page Actions Overlay */}
+                        <div className="absolute top-2 right-2 md:-left-12 md:right-auto md:top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+                          <button onClick={() => runOCR(pageNum)} disabled={isOCRing[pageNum]} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl disabled:opacity-50" title="Make Text Editable">
+                            {isOCRing[pageNum] ? <Loader2 size={16} className="animate-spin w-4 h-4" /> : <ScanText size={16} className="w-4 h-4 md:w-4 md:h-4" />}
+                          </button>
+                          <button onClick={() => rotatePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-white rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Rotate Page">
+                            <RotateCw size={16} className="w-4 h-4 md:w-4 md:h-4" />
+                          </button>
+                          <button onClick={() => deletePage(pageNum)} className="w-8 h-8 md:w-9 md:h-9 bg-zinc-900/80 md:bg-zinc-900 backdrop-blur-md md:backdrop-blur-none border border-white/10 text-zinc-400 hover:text-red-500 rounded-lg md:rounded-xl flex items-center justify-center transition-all shadow-xl" title="Delete Page">
+                            <Trash2 size={16} className="w-4 h-4 md:w-4 md:h-4" />
+                          </button>
                         </div>
 
-                        {/* Manually Added Text Layer */}
-                        {edits.filter(e => e.page === pageNum && e.type === "text").map((edit, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              position: "absolute",
-                              left: `${edit.x}%`,
-                              top: `${edit.y}%`,
-                              fontSize: `${edit.fontSize * scale}px`,
-                              color: edit.color,
-                              fontWeight: "bold",
-                              pointerEvents: "auto",
-                              transform: "translate(-50%, -50%)"
-                            }}
-                            className="border border-dashed border-red-500/50 hover:bg-red-500/5 px-2 py-1 rounded cursor-move"
-                          >
-                            {edit.text}
+                        <div className="relative shadow-2xl bg-white">
+                          <canvas 
+                            ref={(el) => { canvasRefs.current[pageNum] = el; }} 
+                            className={`max-w-full h-auto ${activeTool === "text" ? "cursor-text" : "cursor-default"}`}
+                            onClick={(e) => handleCanvasClick(pageNum, e)}
+                          />
+                          
+                          {/* Interaction Layer */}
+                          <div className="absolute inset-0 select-none">
+                            {/* Text Items Layer */}
+                            <div className="absolute inset-0 overflow-hidden">
+                              {pageTextItems[pageNum]?.map((item) => {
+                                const edit = edits.find(e => e.page === pageNum && e.type === "replaceText" && e.x === item.pdfX && e.y === item.pdfY);
+                                return (
+                                  <div
+                                    key={item.id}
+                                    style={{
+                                      position: "absolute",
+                                      left: `${item.x}px`,
+                                      top: `${item.y}px`,
+                                      width: `${item.width}px`,
+                                      height: `${item.height || item.fontSize}px`,
+                                      fontSize: `${item.fontSize}px`,
+                                      pointerEvents: "auto",
+                                    }}
+                                    className={`group/item border border-transparent hover:border-red-500/30 hover:bg-red-500/5 transition-all cursor-text ${edit ? "opacity-100" : "opacity-0 hover:opacity-100"}`}
+                                    onClick={(e) => handleTextItemClick(pageNum, item, e)}
+                                  >
+                                    {edit ? (
+                                      <div className="absolute inset-0 bg-white text-black font-medium leading-none flex items-center whitespace-nowrap overflow-visible z-10">
+                                        {edit.newText}
+                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                                      </div>
+                                    ) : (
+                                      <div className="absolute inset-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-black/5 text-transparent pointer-events-none">
+                                        {item.text}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Manually Added Text Layer */}
+                            {edits.filter(e => e.page === pageNum && e.type === "text").map((edit, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  position: "absolute",
+                                  left: `${edit.x}%`,
+                                  top: `${edit.y}%`,
+                                  fontSize: `${edit.fontSize * scale}px`,
+                                  color: edit.color,
+                                  fontWeight: "bold",
+                                  pointerEvents: "auto",
+                                  transform: "translate(-50%, -50%)"
+                                }}
+                                className="border border-dashed border-red-500/50 hover:bg-red-500/5 px-2 py-1 rounded cursor-move"
+                              >
+                                {edit.text}
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-center gap-3">
-                      <div className="h-px w-8 bg-white/5" />
-                      <p className="text-[10px] font-black text-zinc-800 uppercase tracking-widest">Page {pageNum}</p>
-                      <div className="h-px w-8 bg-white/5" />
-                    </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-center gap-3">
+                          <div className="h-px w-8 bg-white/5" />
+                          <p className="text-[10px] font-black text-zinc-800 uppercase tracking-widest">Page {pageNum}</p>
+                          <div className="h-px w-8 bg-white/5" />
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
               })}
