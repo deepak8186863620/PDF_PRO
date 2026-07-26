@@ -138,28 +138,7 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
     "Cross-platform synchronization"
   ];
 
-  const [billingCycle, setBillingCycle] = useState("monthly");
-
-  const freeFeatures = [
-    { icon: Check, text: "All basic PDF tools — unlimited" },
-    { icon: Check, text: "5 AI Summarizations / month" },
-    { icon: Check, text: "10 Chat with PDF sessions / month" },
-    { icon: Check, text: "5 OCR text extractions / month" },
-    { icon: Check, text: "3 E-Sign documents / month" },
-    { icon: Check, text: "1 SmartSign Pro document / month" },
-    { icon: Check, text: "Community support" },
-  ];
-
-  const proFeatures = [
-    { icon: Check, text: "Everything in Free, plus:" },
-    { icon: Sparkles, text: "Unlimited AI Summarizations", highlight: true },
-    { icon: MessageSquare, text: "Unlimited Chat with PDF", highlight: true },
-    { icon: FileSearch, text: "Unlimited OCR extractions", highlight: true },
-    { icon: FileSignature, text: "Unlimited E-Signatures", highlight: true },
-    { icon: FileCheck, text: "Unlimited SmartSign Pro", highlight: true },
-    { icon: Zap, text: "Priority processing speed", highlight: true },
-    { icon: Shield, text: "Priority email support" },
-  ];
+  const [activeShowcaseTab, setActiveShowcaseTab] = useState("ai");
 
   return (
     <div className="w-full min-h-[100dvh] bg-black text-white selection:bg-red-500/30">
@@ -366,164 +345,188 @@ export default function Login({ onBack, onLoginSuccess, onAboutClick, onToolClic
         </div>
       </div>
 
-      {/* ── Pricing Cards Section ── */}
+      {/* ── Interactive Features Showcase & Live Statistics Hub ── */}
       <div className="py-24 md:py-32 px-4 relative z-10 bg-black border-t border-white/5">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-800 text-white tracking-tight mb-4">Simple, transparent pricing</h2>
-            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-8">
-              Start free with generous limits. Upgrade to Pro when you need unlimited power.
-            </p>
-            
-          </div>
+        <div className="max-w-6xl mx-auto">
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {/* Free Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative rounded-3xl p-8 lg:p-10 border border-white/20 ring-1 ring-white/10 bg-[#111] transition-all duration-300"
-            >
-              <div className="mb-8">
-                <h3 className="text-2xl font-800 text-white mb-2">Free</h3>
-                <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-5xl font-900 text-white">₹0</span>
-                  <span className="text-zinc-500 text-sm font-600">/forever</span>
-                </div>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  Perfect for casual use. All basic PDF tools with generous AI limits.
-                </p>
-              </div>
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6">
+              <Sparkles size={14} className="text-purple-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Interactive Workspace</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-800 text-white tracking-tight mb-4">Experience the suite in action</h2>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
+              Explore how our suite of tools works together to streamline your workflow before you even log in.
+            </p>
+          </div>
 
-              <div className="space-y-3.5 mb-8">
-                {freeFeatures.map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                      <feature.icon size={12} className="text-zinc-400" />
-                    </div>
-                    <span className="text-sm text-zinc-300">{feature.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-full py-3.5 rounded-xl text-sm font-700 bg-white/10 text-white hover:bg-white/15 transition-colors border border-white/10"
-              >
-                Get Started for Free
-              </button>
-            </motion.div>
-
-            {/* Pro Monthly Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="relative rounded-3xl p-8 lg:p-10 border border-purple-500/20 bg-gradient-to-br from-[#1a1025] to-[#111] shadow-2xl shadow-purple-600/10 transition-all duration-300 flex flex-col"
-            >
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-600/5 to-pink-600/5 pointer-events-none" />
-
-              <div className="relative mb-8 mt-2">
-                <h3 className="text-2xl font-800 text-white mb-2 flex items-center gap-2">
-                  Monthly <Crown size={20} className="text-amber-400" />
-                </h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-5xl font-900 text-white">₹{PLANS.pro_monthly.price}</span>
-                  <span className="text-zinc-500 text-sm font-600">/month</span>
-                </div>
-                <p className="text-zinc-400 text-sm leading-relaxed mt-4">
-                  Unlimited everything. Billed monthly for maximum flexibility.
-                </p>
-              </div>
-
-              <div className="relative space-y-3.5 mb-8 flex-grow">
-                {proFeatures.map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      feature.highlight ? "bg-purple-500/20" : "bg-zinc-800"
-                    }`}>
-                      <feature.icon size={12} className={feature.highlight ? "text-purple-400" : "text-zinc-400"} />
-                    </div>
-                    <span className={`text-sm ${feature.highlight ? "text-white font-600" : "text-zinc-300"}`}>
-                      {feature.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-auto relative">
+          {/* Interactive tabs */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            {[
+              { id: "ai", label: "AI Copilot", icon: Brain, color: "text-blue-400", bg: "bg-blue-500/10" },
+              { id: "editor", label: "Visual Canvas", icon: FileText, color: "text-purple-400", bg: "bg-purple-500/10" },
+              { id: "sign", label: "Secure Signatures", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-500/10" }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeShowcaseTab === tab.id;
+              return (
                 <button
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="relative w-full py-4 rounded-xl text-base font-800 bg-purple-500/10 hover:bg-purple-500/20 text-white transition-all duration-300 shadow-xl shadow-purple-500/10 hover:shadow-purple-500/20 flex items-center justify-center gap-2 border border-purple-500/30"
+                  key={tab.id}
+                  onClick={() => setActiveShowcaseTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all duration-300 cursor-pointer ${
+                    isActive 
+                      ? "bg-white text-black shadow-xl scale-105" 
+                      : "bg-[#111] text-zinc-400 hover:text-white border border-white/5 hover:border-white/10"
+                  }`}
                 >
-                  Choose Monthly
-                  <ArrowRight size={16} />
+                  <Icon size={16} className={isActive ? "text-black" : tab.color} />
+                  {tab.label}
                 </button>
+              );
+            })}
+          </div>
+
+          {/* Showcase Screen Simulator */}
+          <div className="relative max-w-4xl mx-auto rounded-[32px] border border-white/10 bg-[#0c0e14] p-2 shadow-2xl shadow-purple-900/5 mb-24 overflow-hidden">
+            {/* Screen Header mock */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#090b10] rounded-t-[26px]">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/40" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/40" />
+                <div className="w-3 h-3 rounded-full bg-green-500/40" />
               </div>
-            </motion.div>
+              <span className="text-[10px] font-mono tracking-widest text-zinc-600 uppercase">workspace_simulation_v2.0</span>
+              <div className="w-12 h-1 bg-white/5 rounded-full" />
+            </div>
 
-            {/* Pro Yearly Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="relative rounded-3xl p-8 lg:p-10 border border-emerald-500/30 bg-gradient-to-br from-[#022c22] to-[#111] shadow-2xl shadow-emerald-600/10 hover:border-emerald-500/50 transition-all duration-300 ring-1 ring-emerald-500/20 scale-[1.03] z-10 flex flex-col"
-            >
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 whitespace-nowrap border border-emerald-400/30">
-                <Sparkles size={14} />
-                Best Value
-              </div>
-
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 pointer-events-none" />
-
-              <div className="relative mb-8 mt-2">
-                <h3 className="text-2xl font-800 text-white mb-2 flex items-center gap-2">
-                  Yearly <Crown size={20} className="text-emerald-400" />
-                </h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-5xl font-900 text-white">₹{PLANS.pro_yearly.price}</span>
-                  <span className="text-zinc-400 text-sm font-600">/year</span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs text-zinc-500 line-through">₹{PLANS.pro_monthly.price * 12}/yr</span>
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                    Save ₹{(PLANS.pro_monthly.price * 12) - PLANS.pro_yearly.price}
-                  </span>
-                </div>
-                <p className="text-emerald-100/70 text-sm leading-relaxed mt-3">
-                  Unlimited everything. Get maximum savings with our annual plan.
-                </p>
-              </div>
-
-              <div className="relative space-y-3.5 mb-8 flex-grow">
-                {proFeatures.map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      feature.highlight ? "bg-emerald-500/20" : "bg-zinc-800/80"
-                    }`}>
-                      <feature.icon size={12} className={feature.highlight ? "text-emerald-400" : "text-zinc-400"} />
+            {/* Content preview changes based on selected tab */}
+            <div className="p-6 md:p-8 min-h-[300px] flex items-center justify-center relative">
+              {activeShowcaseTab === "ai" && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full max-w-lg space-y-4 font-sans text-left"
+                >
+                  <div className="flex items-end gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 border border-white/5">
+                      <span className="text-xs font-bold text-zinc-400">USR</span>
                     </div>
-                    <span className={`text-sm ${feature.highlight ? "text-white font-600" : "text-zinc-300"}`}>
-                      {feature.text}
-                    </span>
+                    <div className="bg-[#181a20] border border-white/5 rounded-2xl rounded-bl-none p-4 text-sm text-zinc-300 max-w-[85%] shadow-lg">
+                      Summarize the key clauses in this 15-page lease agreement.
+                    </div>
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-auto relative">
-                <button
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="w-full py-4 rounded-xl text-base font-800 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-300 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 border border-emerald-400/50"
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/20 border border-purple-500/20">
+                      <Brain size={14} className="text-white" />
+                    </div>
+                    <div className="bg-gradient-to-br from-[#1b1c2b] to-[#12131f] border border-purple-500/20 rounded-2xl rounded-tl-none p-5 text-sm text-zinc-200 max-w-[85%] shadow-xl space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-purple-400 font-bold uppercase tracking-wider">
+                        <Sparkles size={12} className="animate-pulse" />
+                        AI Agent Analysis Complete
+                      </div>
+                      <ul className="space-y-2 list-disc list-inside text-zinc-300 font-medium">
+                        <li><strong className="text-white">Term:</strong> 24 months, starting Oct 1st, 2026.</li>
+                        <li><strong className="text-white">Rent Escalation:</strong> 3.5% increase annually at month 12.</li>
+                        <li><strong className="text-white">Early Termination:</strong> Requires 90 days prior written notice.</li>
+                      </ul>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: "100%" }} 
+                          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeShowcaseTab === "editor" && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="w-full max-w-xl bg-white text-black p-6 md:p-8 rounded-2xl shadow-2xl relative overflow-hidden flex flex-col gap-4"
                 >
-                  <Crown size={18} />
-                  Login to Upgrade
-                  <ArrowRight size={16} />
-                </button>
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">PDF Document Preview</span>
+                    <span className="text-[10px] bg-zinc-100 px-2 py-0.5 rounded font-mono text-zinc-600">Page 1 of 4</span>
+                  </div>
+
+                  <div className="space-y-2 text-left">
+                    <h3 className="font-extrabold text-lg text-zinc-900">Employment Contract</h3>
+                    <p className="text-xs text-zinc-600 leading-relaxed">
+                      This Agreement is made on this day, between PageDocx Inc. and the Employee. The employee shall perform the duties of the role under the supervision of the Chief Operating Officer.
+                    </p>
+                  </div>
+
+                  <div className="relative border border-dashed border-purple-500/50 bg-purple-50/40 p-4 rounded-xl flex items-center justify-between text-left">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-[9px] font-black text-purple-600 uppercase tracking-widest">
+                        <Sparkles size={10} /> Active Visual Edit
+                      </div>
+                      <div className="text-sm font-extrabold text-zinc-800">
+                        Title: <span className="bg-purple-100/80 px-1.5 py-0.5 rounded border border-purple-200">Senior Staff Engineer</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-bold shadow-md hover:bg-purple-700 transition-colors">
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeShowcaseTab === "sign" && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full max-w-sm bg-[#11131a] border border-white/5 p-6 rounded-3xl text-center shadow-xl space-y-6"
+                >
+                  <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Shield size={28} className="animate-pulse" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-white">SmartSign Verification</h4>
+                    <p className="text-xs text-zinc-500">Document cryptographically sealed & verified</p>
+                  </div>
+
+                  <div className="bg-[#181a22] border border-white/5 p-4 rounded-2xl flex items-center justify-between text-left">
+                    <div className="space-y-0.5">
+                      <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Signer Identity</span>
+                      <p className="text-xs font-bold text-white">Deepak Prajapati</p>
+                      <p className="text-[9px] font-mono text-zinc-500">SHA256: d48d0a7...7075dc9</p>
+                    </div>
+                    <div className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                      <Check size={10} /> Certified
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto border-t border-white/5 pt-16">
+            {[
+              { value: "1.4M+", label: "Documents Handled", desc: "Across all PDF conversions" },
+              { value: "99.9%", label: "System Uptime", desc: "Highly optimized architecture" },
+              { value: "4.8/5.0", label: "User Rating", desc: "From thousands of reviews" },
+              { value: "35 min", label: "Avg. Time Saved", desc: "Per user daily workflow" }
+            ].map((stat, idx) => (
+              <div key={idx} className="text-center md:text-left space-y-2">
+                <span className="text-4xl md:text-5xl font-black text-white tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
+                  {stat.value}
+                </span>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-zinc-300">{stat.label}</h4>
+                  <p className="text-xs text-zinc-600">{stat.desc}</p>
+                </div>
               </div>
-            </motion.div>
+            ))}
           </div>
 
         </div>
